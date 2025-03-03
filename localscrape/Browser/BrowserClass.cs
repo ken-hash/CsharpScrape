@@ -5,6 +5,15 @@ using OpenQA.Selenium.Edge;
 
 namespace localscrape.Browser
 {
+    public interface IBrowser
+    {
+        void NavigateToUrl(string Url);
+        void NavigateToString(string PageSource);
+        List<IWebElement> FindElements(By by);
+        void CloseDriver();
+        string GetPageSource();
+    }
+
     public class BrowserService : IBrowser
     {
         private readonly IWebDriver _driver;

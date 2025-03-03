@@ -2,6 +2,6 @@ namespace localscrape.Models
 {
     public class AsuraScansObject : MangaObject
     {
-        public override string? TableName { get => "AsuraScans"; }
+        public new string? TableName { get => "AsuraScans"; }
     }
 }

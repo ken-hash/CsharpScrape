@@ -41,7 +41,7 @@ namespace localscrape.Repo
                 };
                 string query = $"SELECT COUNT(1) FROM {_tableName} WHERE Title = @Title";
                 IEnumerable<int> results = sql.Query<int>(query, parameters);
-                return results?.Count() > 0;
+                return results?.First() > 0;
             }
         }
 

@@ -4,6 +4,7 @@ using localscrape.Helpers;
 using localscrape.Models;
 using localscrape.Repo;
 using OpenQA.Selenium;
+using System.Text.RegularExpressions;
 
 namespace localscrape.Manga
 {
@@ -14,8 +15,10 @@ namespace localscrape.Manga
         public virtual string? TableName { get; protected set; }
         public bool RunDebug { get; set; } = false;
         public bool RunAllTitles { get; set; } = true;
-        public List<MangaChapter> MangaChapters { get; set; } = new List<MangaChapter>();
+        public List<MangaChapter> MangaChapters { get; set; } = new();
         private List<MangaObject> _allMangaObjects { get; set; }
+        public List<MangaSeries> FetchedMangaSeries { get; } = new();
+
         private readonly IMangaRepo _repo;
         private readonly IDebugService _debug;
         private readonly IBrowser _browser;
@@ -167,6 +170,46 @@ namespace localscrape.Manga
             }
         }
 
+        public virtual void ProcessUpdatedChapters(MangaSeries manga, MangaObject mangaDb)
+        {
+            GetAllAvailableChapters(manga);
+            var chaptersInDb = mangaDb.ExtraInformation!.Split(',').ToList();
+            var uniqueChapters = manga.MangaChapters!.Select(e => e.ChapterName).Except(chaptersInDb).ToList();
+            var mangaChaptersToDL = manga.MangaChapters!.Where(e => uniqueChapters.Contains(e.ChapterName)).ToList();
+
+            foreach (var chapter in mangaChaptersToDL)
+            {
+                if (!string.IsNullOrEmpty(chapter.Uri))
+                {
+                    GoToMangaPage(manga, chapter.Uri);
+                    var images = GetMangaImages(chapter);
+                    if (images.Any()) AddImagesToDownload(images);
+                }
+            }
+        }
+
+        public void ProcessFetchedManga()
+        {
+            var mangaInDb = GetAllMangaTitles();
+            var mangaNotInDb = FetchedMangaSeries.Where(m => mangaInDb.All(dbManga => dbManga.Title != m.MangaTitle)).ToList();
+            var fetchedMangasInDb = FetchedMangaSeries.Where(m => mangaInDb.Any(dbManga => dbManga.Title == m.MangaTitle)).ToList();
+
+            foreach (var manga in mangaNotInDb)
+            {
+                InsertNewManga(manga);
+                GetAllAvailableChapters(manga);
+            }
+
+            foreach (var manga in fetchedMangasInDb)
+            {
+                var mangaDb = mangaInDb.First(e => e.Title == manga.MangaTitle);
+                if (manga.MangaChapters!.First().ChapterName != mangaDb.LatestChapter)
+                {
+                    ProcessUpdatedChapters(manga, mangaDb);
+                }
+            }
+        }
+
         public void GoToUrl(string url)
         {
             _browser.NavigateToUrl(url);
@@ -223,6 +266,24 @@ namespace localscrape.Manga
                 throw new Exception($"\'{manga.MangaTitle}\' is invalid.");
             if (!_repo.DoesExist(manga.MangaTitle))
                 _repo.InsertManga(new MangaObject { Title = manga.MangaTitle });
+        }
+
+        public virtual string ExtractMangaTitle(string rawText)
+        {
+            var match = Regex.Match(rawText, @"series\/([\w-]+)-(\w+)");
+            return match.Success ? match.Groups[1].Value : string.Empty;
+        }
+
+        public virtual string ExtractChapterName(string rawText)
+        {
+            var match = Regex.Match(rawText, @"Chapter\s*(\d+(?:\.\d+)?)");
+            return match.Success ? match.Groups[1].Value : string.Empty;
+        }
+
+        public virtual string GetChapterName(string rawText)
+        {
+            var match = Regex.Match(rawText, @"chapter\s(\d+(\.\d+)?)", RegexOptions.IgnoreCase);
+            return match.Success ? match.Groups[1].Value : string.Empty;
         }
     }
 }
