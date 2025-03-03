@@ -1,7 +1,12 @@
 using dotenv.net;
-namespace localscrape.Repo
+namespace localscrape.Helpers
 {
-    public class DotEnvHelper
+    public interface IDotEnvHelper
+    {
+        string GetEnvValue(string Key);
+    }
+
+    public class DotEnvHelper : IDotEnvHelper
     {
         public DotEnvHelper()
         {

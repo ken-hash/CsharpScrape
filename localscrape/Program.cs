@@ -1,12 +1,13 @@
-﻿using localscrape.Manga;
+﻿using localscrape.Browser;
+using localscrape.Debug;
+using localscrape.Helpers;
+using localscrape.Manga;
 using localscrape.Models;
 using localscrape.Repo;
-using localscrape.Browser;
-using localscrape.Debug;
 
-var asuraRepo = new MangaRepo("AsuraScans");
-var chromeBrowser = new BrowserService(BrowserType.Chrome);
-var debug = new DebugService();
-var asuraScans = new AsuraScansService(asuraRepo, chromeBrowser, debug);
+MangaRepo asuraRepo = new("AsuraScans");
+BrowserService chromeBrowser = new(BrowserType.Chrome);
+DebugService debug = new(new FileHelper());
+AsuraScansService asuraScans = new(asuraRepo, chromeBrowser, debug);
 asuraScans.RunDebug = true;
 asuraScans.RunProcess();

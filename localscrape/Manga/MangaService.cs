@@ -9,33 +9,30 @@ namespace localscrape.Manga
 {
     public class MangaService
     {
-        public virtual string? HomePage { get; set; }
-        public virtual string? SeriesUrl { get; set; }
-        public virtual string? TableName { get; set; }
+        public virtual string? HomePage { get; protected set; }
+        public virtual string? SeriesUrl { get; protected set; }
+        public virtual string? TableName { get; protected set; }
         public bool RunDebug { get; set; } = false;
         public bool RunAllTitles { get; set; } = true;
         public List<MangaChapter> MangaChapters { get; set; } = new List<MangaChapter>();
         private List<MangaObject> _allMangaObjects { get; set; }
-        private readonly MangaRepo _repo;
-        private readonly DebugService _debug;
+        private readonly IMangaRepo _repo;
+        private readonly IDebugService _debug;
         private readonly IBrowser _browser;
+        private readonly IFileHelper _fileHelper;
 
-        public MangaService(MangaRepo repo, IBrowser browser, DebugService debug)
+        public MangaService(IMangaRepo repo, IBrowser browser, IDebugService debug)
         {
             _repo = repo;
             _browser = browser;
             _debug = debug;
+            _fileHelper = debug.GetFileHelper();
             _allMangaObjects = GetAllMangas();
         }
 
         public virtual List<MangaSeries> GetMangaLinks()
         {
             return new List<MangaSeries>();
-        }
-
-        public virtual bool ValidateTitle(string mangaTitle)
-        {
-            return false;
         }
 
         public virtual void GetAllAvailableChapters(MangaSeries mangaSeries)
@@ -58,18 +55,22 @@ namespace localscrape.Manga
             return _allMangaObjects;
         }
 
+        /// <summary>
+        /// Grabs all the images from the manga page
+        /// </summary>
+        /// <param name="manga"></param>
+        /// <returns></returns>
         public virtual List<MangaImages> GetMangaImages(MangaChapter manga)
         {
-            var helper = new FileHelper();
-            var mangaImages = new List<MangaImages>();
-            var images = FindByCssSelector("img");
-            foreach(var image in images)
+            List<MangaImages> mangaImages = new();
+            List<IWebElement> images = FindByCssSelector("img");
+            foreach (IWebElement image in images)
             {
-                var url = image.GetAttribute("src");
-                var fileName =  url.Split('/').Last();
-                if (helper.isAnImage(fileName))
+                string url = image.GetAttribute("src");
+                string fileName = url.Split('/').Last();
+                if (_fileHelper.IsAnImage(fileName))
                 {
-                    var fullPath = Path.Combine(helper.GetMangaDownloadFolder(), manga.MangaTitle!, manga.ChapterName!, fileName);
+                    string fullPath = Path.Combine(_fileHelper.GetMangaDownloadFolder(), manga.MangaTitle!, manga.ChapterName!, fileName);
                     mangaImages.Add(new MangaImages { ImageFileName = fileName, FullPath = fullPath, Uri = url });
                 }
             }
@@ -79,13 +80,26 @@ namespace localscrape.Manga
         public virtual void RunProcess()
         {
             Console.WriteLine($"Executing {this.GetType().Name}");
+            //override this
+            //usually checks home page for latest updated manga that includes chapter links
+            //checks if manga chapters is in db 
+            //and if the latest chapter is synced with the db
+            //if not, then checks series page to grab all chapters
+            //run all chapters in db vs available chapters in site
+            //all chapters that are not in the db are then to be added to download queue
         }
 
+        /// <summary>
+        /// Navigates to the home page of the manga site
+        /// if RunDebug is true, it will check if there is a debug file for the home page
+        /// to avoid hitting the site multiple times
+        /// if there is no debug file, it will create one
+        /// </summary>
         public void GoToHomePage()
         {
             if (RunDebug)
             {
-                var sourceDebug = _debug.ReadDebugFile(TableName!, "Home", MangaSiteEnum.HomePage);
+                string sourceDebug = _debug.ReadDebugFile(TableName!, "Home", MangaSiteEnum.HomePage);
                 if (string.IsNullOrWhiteSpace(sourceDebug))
                 {
                     _browser.NavigateToUrl(HomePage!);
@@ -102,11 +116,15 @@ namespace localscrape.Manga
             }
         }
 
+        /// <summary>
+        /// Same as GoToHomePage but for the series page
+        /// </summary>
+        /// <param name="manga"></param>
         public void GoToSeriesPage(MangaSeries manga)
         {
             if (RunDebug)
             {
-                var sourceDebug = _debug.ReadDebugFile(TableName!, manga.MangaTitle!, MangaSiteEnum.ChapterPage);
+                string sourceDebug = _debug.ReadDebugFile(TableName!, manga.MangaTitle!, MangaSiteEnum.ChapterPage);
                 if (string.IsNullOrWhiteSpace(sourceDebug))
                 {
                     _browser.NavigateToUrl(manga.MangaSeriesUri!);
@@ -123,11 +141,16 @@ namespace localscrape.Manga
             }
         }
 
+        /// <summary>
+        /// Same as GoToHomePage but for the manga page
+        /// </summary>
+        /// <param name="manga"></param>
+        /// <param name="url"></param>
         public void GoToMangaPage(MangaSeries manga, string url)
         {
             if (RunDebug)
             {
-                var sourceDebug = _debug.ReadDebugFile(TableName!, manga.MangaTitle!, MangaSiteEnum.MangaPage);
+                string sourceDebug = _debug.ReadDebugFile(TableName!, manga.MangaTitle!, MangaSiteEnum.MangaPage);
                 if (string.IsNullOrWhiteSpace(sourceDebug))
                 {
                     _browser.NavigateToUrl(url);
@@ -168,13 +191,19 @@ namespace localscrape.Manga
         {
             _browser.CloseDriver();
         }
+
+        /// <summary>
+        /// Convert MangaImages and insert it into the download queue
+        /// </summary>
+        /// <param name="mangaImages"></param>
         public void AddImagesToDownload(List<MangaImages> mangaImages)
         {
-            foreach(var image in mangaImages)
+            foreach (MangaImages image in mangaImages)
             {
-                var chapter = Directory.GetParent(image.FullPath!)!.Name;
-                var title = Directory.GetParent(image.FullPath!)!.Parent!.Name;
-                var queue = new DownloadObject {
+                string chapter = Directory.GetParent(image.FullPath!)!.Name;
+                string title = Directory.GetParent(image.FullPath!)!.Parent!.Name;
+                DownloadObject queue = new()
+                {
                     ChapterNum = chapter,
                     Title = title,
                     FileId = image.ImageFileName!,
@@ -184,8 +213,14 @@ namespace localscrape.Manga
             }
         }
 
+        /// <summary>
+        /// Insert a new manga into the database
+        /// </summary>
+        /// <param name="manga"></param>
         public void InsertNewManga(MangaSeries manga)
         {
+            if (string.IsNullOrEmpty(manga.MangaTitle))
+                throw new Exception($"\'{manga.MangaTitle}\' is invalid.");
             if (!_repo.DoesExist(manga.MangaTitle))
                 _repo.InsertManga(new MangaObject { Title = manga.MangaTitle });
         }

@@ -2,11 +2,16 @@ using localscrape.Models;
 using System.Text.RegularExpressions;
 namespace localscrape.Helpers
 {
-    public class DownloadHelper
+    public interface IDownloadHelper
+    {
+        DownloadObject CreateDownloadObject(string downloadPath, string uri);
+    }
+
+    public class DownloadHelper : IDownloadHelper
     {
         public DownloadObject CreateDownloadObject(string downloadPath, string uri)
         {
-            var dlObject = new DownloadObject
+            DownloadObject dlObject = new()
             {
                 Title = Path.GetFileName(Path.GetDirectoryName(downloadPath))!,
                 ChapterNum = Path.GetFileName(downloadPath),

@@ -3,15 +3,23 @@ using localscrape.Models;
 
 namespace localscrape.Debug
 {
-    public class DebugService
+    public interface IDebugService
+    {
+        string DebugFolder { get; set; }
+        void WriteDebugFile(string tableName, MangaSiteEnum site, string mangaTitle, string writeLogs);
+        string ReadDebugFile(string tableName, string mangaTitle, MangaSiteEnum mangaSite);
+        IFileHelper GetFileHelper();
+    }
+
+    public class DebugService : IDebugService
     {
         public string DebugFolder { get; set; }
-        private readonly FileHelper _helper;
+        private readonly IFileHelper _helper;
 
-        public DebugService()
+        public DebugService(IFileHelper fileHelper)
         {
-            _helper = new FileHelper();
-            DebugFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),"DebugFiles");
+            _helper = fileHelper;
+            DebugFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "DebugFiles");
         }
 
         public void WriteDebugFile(string tableName, MangaSiteEnum site, string mangaTitle, string writeLogs)
@@ -29,6 +37,10 @@ namespace localscrape.Debug
             {
                 return string.Empty;
             }
+        }
+        public IFileHelper GetFileHelper()
+        {
+            return _helper;
         }
     }
 }

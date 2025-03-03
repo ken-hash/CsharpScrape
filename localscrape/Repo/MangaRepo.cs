@@ -1,61 +1,77 @@
 using Dapper;
+using localscrape.Helpers;
 using localscrape.Models;
 using MySqlConnector;
 namespace localscrape.Repo
 {
+    public interface IMangaRepo
+    {
+        string GetTableName();
+        bool DoesExist(string mangaTitle);
+        List<MangaObject> GetMangas();
+        MangaObject? GetMangaTitle(string mangaTitle);
+        void UpdateManga(MangaObject mangaObject);
+        void InsertManga(MangaObject mangaObject);
+        void InsertQueue(DownloadObject downloadObject);
+    }
 
-    public class MangaRepo
+    public class MangaRepo : IMangaRepo
     {
         private readonly string? _tableName;
         private readonly string? _connectionString;
         public MangaRepo(string? TableName)
         {
-            var dotEnv = new DotEnvHelper();
+            DotEnvHelper dotEnv = new();
             _tableName = TableName;
             _connectionString = dotEnv.GetEnvValue("connectionString");
         }
 
+        public string GetTableName()
+        {
+            return _tableName ?? string.Empty;
+        }
+
         public bool DoesExist(string mangaTitle)
         {
-            using (var sql = new MySqlConnection(_connectionString))
+            using (MySqlConnection sql = new(_connectionString))
             {
                 var parameters = new
                 {
                     Title = mangaTitle
                 };
                 string query = $"SELECT COUNT(1) FROM {_tableName} WHERE Title = @Title";
-                var results = sql.Query<int>(query, parameters);
+                IEnumerable<int> results = sql.Query<int>(query, parameters);
                 return results?.Count() > 0;
             }
         }
 
         public List<MangaObject> GetMangas()
         {
-            using (var sql = new MySqlConnection(_connectionString))
+            using (MySqlConnection sql = new(_connectionString))
             {
                 string query = $"SELECT * FROM {_tableName}";
-                var results = sql.Query<MangaObject>(query);
+                IEnumerable<MangaObject> results = sql.Query<MangaObject>(query);
                 return results.ToList();
             }
         }
 
         public MangaObject? GetMangaTitle(string mangaTitle)
         {
-            using (var sql = new MySqlConnection(_connectionString))
+            using (MySqlConnection sql = new(_connectionString))
             {
                 var parameters = new
                 {
                     Title = mangaTitle
                 };
                 string query = $"SELECT * FROM {_tableName} WHERE Title = @Title";
-                var results = sql.Query<MangaObject>(query, parameters);
+                IEnumerable<MangaObject> results = sql.Query<MangaObject>(query, parameters);
                 return results.FirstOrDefault();
             }
         }
 
         public void UpdateManga(MangaObject mangaObject)
         {
-            using (var sql = new MySqlConnection(_connectionString))
+            using (MySqlConnection sql = new(_connectionString))
             {
                 var parameters = new
                 {
@@ -71,7 +87,7 @@ namespace localscrape.Repo
 
         public void InsertManga(MangaObject mangaObject)
         {
-            using (var sql = new MySqlConnection(_connectionString))
+            using (MySqlConnection sql = new(_connectionString))
             {
                 var parameters = new
                 {
@@ -87,7 +103,7 @@ namespace localscrape.Repo
 
         public void InsertQueue(DownloadObject downloadObject)
         {
-            using (var sql = new MySqlConnection(_connectionString))
+            using (MySqlConnection sql = new(_connectionString))
             {
                 var parameters = new
                 {

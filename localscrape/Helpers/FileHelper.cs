@@ -1,15 +1,24 @@
 namespace localscrape.Helpers
 {
-    public class FileHelper
+    public interface IFileHelper
     {
-        HashSet<string> allowedExtensions = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        string GetMangaDownloadFolder();
+        bool IsAnImage(string fileName);
+        PlatformID GetOS();
+        void WriteFile(string lines, string path);
+        string ReadFile(string path);
+    }
+
+    public class FileHelper : IFileHelper
+    {
+        HashSet<string> allowedExtensions = new(StringComparer.OrdinalIgnoreCase)
         {
             ".jpg", ".jpeg", ".png", ".gif", ".bmp", ".webp"
         };
 
         public string GetMangaDownloadFolder()
         {
-            var OS = GetOS();
+            PlatformID OS = GetOS();
             switch (OS)
             {
                 case PlatformID.Unix:
@@ -19,9 +28,9 @@ namespace localscrape.Helpers
             }
         }
 
-        public bool isAnImage(string fileName)
+        public bool IsAnImage(string fileName)
         {
-            var extension = Path.GetExtension(fileName);
+            string extension = Path.GetExtension(fileName);
             return allowedExtensions.Contains(extension);
         }
 
@@ -34,7 +43,7 @@ namespace localscrape.Helpers
         {
             try
             {
-                string directory = Path.GetDirectoryName(path)??Directory.GetCurrentDirectory();
+                string directory = Path.GetDirectoryName(path) ?? Directory.GetCurrentDirectory();
                 if (!Directory.Exists(directory))
                 {
                     Directory.CreateDirectory(directory);
@@ -55,7 +64,7 @@ namespace localscrape.Helpers
                 {
                     return string.Empty;
                 }
-                using (StreamReader reader = new StreamReader(path))
+                using (StreamReader reader = new(path))
                 {
                     return reader.ReadToEnd();
                 }
