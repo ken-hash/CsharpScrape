@@ -1,5 +1,4 @@
-localscrape/bin/
-localscrape/obj/
-localscrape/bin/Debug/net9.0/.env
+*/bin/
 .vscode/settings.json
 .vs/
+*/obj
