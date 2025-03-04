@@ -42,7 +42,6 @@ namespace localscrape.Browser
             _driver.Navigate().GoToUrl(Url);
         }
 
-
         public void CloseDriver()
         {
             _driver.Quit();

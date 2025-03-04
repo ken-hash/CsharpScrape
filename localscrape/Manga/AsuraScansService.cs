@@ -1,6 +1,5 @@
 using localscrape.Browser;
 using localscrape.Debug;
-using localscrape.Helpers;
 using localscrape.Models;
 using localscrape.Repo;
 using OpenQA.Selenium;
@@ -95,15 +94,14 @@ namespace localscrape.Manga
 
         public override List<MangaImages> GetMangaImages(MangaChapter manga)
         {
-            var helper = new FileHelper();
             var images = FindByElements(By.XPath("//img[@alt and normalize-space(@alt) != '']"))
                 .Select(image => new MangaImages
                 {
                     ImageFileName = image.GetAttribute("src").Split('/').Last(),
-                    FullPath = Path.Combine(helper.GetMangaDownloadFolder(), manga.MangaTitle!, manga.ChapterName!, image.GetAttribute("src").Split('/').Last()),
+                    FullPath = Path.Combine(_fileHelper.GetMangaDownloadFolder(), manga.MangaTitle!, manga.ChapterName!, image.GetAttribute("src").Split('/').Last()),
                     Uri = image.GetAttribute("src")
                 })
-                .Where(img => helper.IsAnImage(img.ImageFileName!) && !BlockedFileNames.Contains(img.ImageFileName!) && !Regex.IsMatch(img.ImageFileName!, "-thumb-small\\.webp"))
+                .Where(img => _fileHelper.IsAnImage(img.ImageFileName!) && !BlockedFileNames.Contains(img.ImageFileName!) && !Regex.IsMatch(img.ImageFileName!, "-thumb-small\\.webp"))
                 .ToList();
 
             return images;

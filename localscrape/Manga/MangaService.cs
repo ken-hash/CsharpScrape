@@ -18,11 +18,11 @@ namespace localscrape.Manga
         public List<MangaChapter> MangaChapters { get; set; } = new();
         private List<MangaObject> _allMangaObjects { get; set; }
         public List<MangaSeries> FetchedMangaSeries { get; } = new();
+        public readonly IFileHelper _fileHelper;
 
         private readonly IMangaRepo _repo;
         private readonly IDebugService _debug;
         private readonly IBrowser _browser;
-        private readonly IFileHelper _fileHelper;
 
         public MangaService(IMangaRepo repo, IBrowser browser, IDebugService debug)
         {
