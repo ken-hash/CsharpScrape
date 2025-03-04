@@ -2,6 +2,7 @@
 using OpenQA.Selenium;
 using OpenQA.Selenium.Chrome;
 using OpenQA.Selenium.Edge;
+using OpenQA.Selenium.Support.UI;
 
 namespace localscrape.Browser
 {
@@ -12,6 +13,7 @@ namespace localscrape.Browser
         List<IWebElement> FindElements(By by);
         void CloseDriver();
         string GetPageSource();
+        WebDriverWait GetWait(int seconds);
     }
 
     public class BrowserService : IBrowser
@@ -60,6 +62,11 @@ namespace localscrape.Browser
         public void NavigateToString(string PageSource)
         {
             _driver.Navigate().GoToUrl($"data:text/html;charset=utf-8,{Uri.EscapeDataString(PageSource)}");
+        }
+
+        public WebDriverWait GetWait(int seconds)
+        {
+            return new WebDriverWait(_driver, TimeSpan.FromSeconds(seconds));
         }
     }
 }

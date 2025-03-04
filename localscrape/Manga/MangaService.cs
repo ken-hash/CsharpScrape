@@ -4,6 +4,7 @@ using localscrape.Helpers;
 using localscrape.Models;
 using localscrape.Repo;
 using OpenQA.Selenium;
+using OpenQA.Selenium.Support.UI;
 using System.Text.RegularExpressions;
 
 namespace localscrape.Manga
@@ -66,6 +67,7 @@ namespace localscrape.Manga
         public virtual List<MangaImages> GetMangaImages(MangaChapter manga)
         {
             List<MangaImages> mangaImages = new();
+            Thread.Sleep(2000);
             List<IWebElement> images = FindByCssSelector("img");
             foreach (IWebElement image in images)
             {
@@ -284,6 +286,11 @@ namespace localscrape.Manga
         {
             var match = Regex.Match(rawText, @"chapter\s(\d+(\.\d+)?)", RegexOptions.IgnoreCase);
             return match.Success ? match.Groups[1].Value : string.Empty;
+        }
+
+        public WebDriverWait GetBrowserWait(int seconds)
+        {
+            return _browser.GetWait(seconds);
         }
     }
 }
