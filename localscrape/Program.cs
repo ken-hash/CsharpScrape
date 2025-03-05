@@ -18,3 +18,11 @@ BrowserService edgeBrowser = new(BrowserType.Edge);
 WeebCentralService weebCentralService = new(weebCentralRepo, edgeBrowser, debug);
 weebCentralService.RunDebug = false;
 weebCentralService.RunProcess();
+
+
+//MangaRepo flameScansRepo = new("FlameScans");
+//BrowserService edgeBrowser = new(BrowserType.Edge);
+//DebugService debug = new(new FileHelper());
+//FlameScansService flameScansService = new(flameScansRepo, edgeBrowser, debug);
+//flameScansService.RunDebug = true;
+//flameScansService.RunProcess();
