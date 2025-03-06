@@ -54,6 +54,11 @@ namespace localscrape.Manga
             return _repo.GetMangas();
         }
 
+        public void UpdateMangaSeries(MangaObject manga)
+        {
+            _repo.UpdateManga(manga);
+        }
+
         public List<MangaObject> GetAllMangaTitles()
         {
             return _allMangaObjects;
