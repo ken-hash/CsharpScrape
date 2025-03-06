@@ -20,9 +20,8 @@ weebCentralService.RunDebug = false;
 weebCentralService.RunProcess();
 
 
-//MangaRepo flameScansRepo = new("FlameScans");
-//BrowserService edgeBrowser = new(BrowserType.Edge);
-//DebugService debug = new(new FileHelper());
-//FlameScansService flameScansService = new(flameScansRepo, edgeBrowser, debug);
-//flameScansService.RunDebug = true;
-//flameScansService.RunProcess();
+MangaRepo flameScansRepo = new("FlameScans");
+edgeBrowser = new(BrowserType.Edge);
+FlameScansService flameScansService = new(flameScansRepo, edgeBrowser, debug);
+flameScansService.RunDebug = false;
+flameScansService.RunProcess();
