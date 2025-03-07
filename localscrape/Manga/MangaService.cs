@@ -9,7 +9,7 @@ using System.Text.RegularExpressions;
 
 namespace localscrape.Manga
 {
-    public class MangaService
+    public abstract class MangaService
     {
         public virtual string? HomePage { get; protected set; }
         public virtual string? SeriesUrl { get; protected set; }
@@ -34,20 +34,9 @@ namespace localscrape.Manga
             _allMangaObjects = GetAllMangas();
         }
 
-        public virtual List<MangaSeries> GetMangaLinks()
-        {
-            return new List<MangaSeries>();
-        }
+        public abstract List<MangaSeries> GetMangaLinks();
 
-        public virtual void GetAllAvailableChapters(MangaSeries mangaSeries)
-        {
-            throw new NotImplementedException();
-        }
-
-        public virtual List<MangaChapter> GetChaptersToDownload(MangaSeries mangaSeries)
-        {
-            return new List<MangaChapter>();
-        }
+        public abstract void GetAllAvailableChapters(MangaSeries mangaSeries);
 
         private List<MangaObject> GetAllMangas()
         {
@@ -184,7 +173,7 @@ namespace localscrape.Manga
             var uniqueChapters = manga.MangaChapters!.Select(e => e.ChapterName).Except(chaptersInDb).ToList();
             var mangaChaptersToDL = manga.MangaChapters!.Where(e => uniqueChapters.Contains(e.ChapterName)).ToList();
 
-            foreach (var chapter in mangaChaptersToDL)
+            foreach (var chapter in mangaChaptersToDL.OrderBy(e=>e.ChapterName))
             {
                 if (!string.IsNullOrEmpty(chapter.Uri))
                 {
