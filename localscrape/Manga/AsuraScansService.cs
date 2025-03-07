@@ -34,6 +34,7 @@ namespace localscrape.Manga
                 {
                     GoToHomePage();
                     GetMangaLinks();
+                    SyncDownloadedChapters();
                 }
                 else if (SingleManga != null)
                 {

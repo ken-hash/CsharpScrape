@@ -41,6 +41,7 @@ namespace localscrape.Manga
                     GetAllAvailableChapters(SingleManga);
                 }
                 ProcessFetchedManga();
+                SyncDownloadedChapters();
             }
             finally
             {
