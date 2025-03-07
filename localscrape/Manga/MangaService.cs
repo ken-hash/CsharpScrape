@@ -171,16 +171,15 @@ namespace localscrape.Manga
             GetAllAvailableChapters(manga);
             var chaptersInDb = mangaDb.ExtraInformation!.Split(',').ToList();
             var uniqueChapters = manga.MangaChapters!.Select(e => e.ChapterName).Except(chaptersInDb).ToList();
-            var mangaChaptersToDL = manga.MangaChapters!.Where(e => uniqueChapters.Contains(e.ChapterName)).ToList();
+            var mangaChaptersToDL = manga.MangaChapters!.Where(e => uniqueChapters.Contains(e.ChapterName) 
+                 && !string.IsNullOrEmpty(e.Uri))
+                .DistinctBy(e=>e.Uri).ToList();
 
-            foreach (var chapter in mangaChaptersToDL.OrderBy(e=>e.ChapterName))
+            foreach (var chapter in mangaChaptersToDL.OrderBy(e=>e.ChapterName, new NaturalSortComparer()))
             {
-                if (!string.IsNullOrEmpty(chapter.Uri))
-                {
-                    GoToMangaPage(manga, chapter.Uri);
-                    var images = GetMangaImages(chapter);
-                    if (images.Any()) AddImagesToDownload(images);
-                }
+                GoToMangaPage(manga, chapter.Uri!);
+                var images = GetMangaImages(chapter);
+                if (images.Any()) AddImagesToDownload(images);
             }
         }
 
@@ -202,6 +201,22 @@ namespace localscrape.Manga
                 if (manga.MangaChapters!.First().ChapterName != mangaDb.LatestChapter)
                 {
                     ProcessUpdatedChapters(manga, mangaDb);
+                }
+            }
+        }
+
+        public void SyncDownloadedChapters()
+        {
+            var mangasInDb = GetAllMangaTitles();
+            foreach (var manga in FetchedMangaSeries)
+            {
+                var mangaObject = mangasInDb.First(e => e.Title == manga.MangaTitle);
+                var latestChapter = mangaObject.ExtraInformation!.Split(',').SkipLast(1).Last();
+                if (manga.MangaChapters!.First().ChapterName == latestChapter)
+                {
+                    mangaObject.LatestChapter = latestChapter;
+                    mangaObject.LastUpdated = DateTime.Now;
+                    UpdateMangaSeries(mangaObject);
                 }
             }
         }

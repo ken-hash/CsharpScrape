@@ -40,6 +40,7 @@ namespace localscrape.Manga
                     GetAllAvailableChapters(SingleManga);
                 }
                 ProcessFetchedManga();
+                SyncDownloadedChapters();
             }
             finally
             {
@@ -55,11 +56,12 @@ namespace localscrape.Manga
                 .Select(e=>e.Text.Trim()).ToList();
             var latestChapterTexts = FindByElements(By.XPath("//div[contains(@class, 'SeriesCard_chapterPillWrapper__0yOPE')]"))
                 .Select(e => e.Text.Trim()).ToList();
-            var mangaSeriesLinks = FindByElements(By.XPath("//a[contains(@class, 'SeriesCard_chapterImageLink__cDtXf')]"));
+            var mangaSeriesLinks = FindByElements(By.XPath("//a[contains(@class, 'SeriesCard_chapterImageLink__cDtXf')]"))
+                .Select(e=>e.GetAttribute("href").Replace(HomePage!, "")).ToList();
 
             for (int x=0; x< mangaSeriesLinks.Count;x++)
             {
-                var linkText = mangaSeriesLinks[x].GetAttribute("href").Replace(HomePage!,"");
+                var linkText = mangaSeriesLinks[x];
                 var seriesLink = $"{HomePage}{linkText}";
                 var mangaTitle = mangaTitleTexts[x];
                 if (!allMangasInDb.Any(e => e.Title == mangaTitle))
@@ -83,12 +85,14 @@ namespace localscrape.Manga
         {
             GoToSeriesPage(mangaSeries);
             var cleanedFilter = mangaSeries.MangaSeriesUri!.Replace(HomePage!,"");
-            var chapterBoxes = FindByElements(By.XPath("//p[contains(@class, 'mantine-Text-root') and @data-size='md' and @data-line-clamp='true']"));
-            var chapterLinks = FindByElements(By.XPath($"//a[starts-with(@href, '{cleanedFilter}') and not(contains(substring(@href, string-length(@href) - 3), '.'))]"));
+            var chapterBoxes = FindByElements(By.XPath("//p[contains(@class, 'mantine-Text-root') and @data-size='md' and @data-line-clamp='true']"))
+                                .Select(e=>e.Text.Trim()).ToList();
+            var chapterLinks = FindByElements(By.XPath($"//a[starts-with(@href, '{cleanedFilter}') and not(contains(substring(@href, string-length(@href) - 3), '.'))]"))
+                                .Select(e=>e.GetAttribute("href")).ToList();
 
             for (int x=0;x<chapterBoxes.Count;x++)
             {
-                var chapterName = GetChapterName(chapterBoxes[x].Text.Trim());
+                var chapterName = GetChapterName(chapterBoxes[x]);
                 if (!string.IsNullOrEmpty(chapterName))
                 {
                     mangaSeries.MangaChapters ??= new List<MangaChapter>();
@@ -96,8 +100,8 @@ namespace localscrape.Manga
                     {
                         MangaTitle = mangaSeries.MangaTitle,
                         ChapterName = chapterName,
-                        Uri = $"{chapterLinks[x].GetAttribute("href")}"
-                    });
+                        Uri = chapterLinks.Count >= 2 ? chapterLinks[x + 2] : chapterLinks[x]
+                    }); //disregard the first two links as they are the first chapter and last chapter links
                 }
             }
         }
