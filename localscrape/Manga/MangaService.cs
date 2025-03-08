@@ -11,16 +11,15 @@ namespace localscrape.Manga
 {
     public abstract class MangaService
     {
-        public virtual string? HomePage { get; protected set; }
-        public virtual string? SeriesUrl { get; protected set; }
+        public abstract string? HomePage { get; }
+        public abstract string? SeriesUrl { get; }
         public virtual string? TableName { get; protected set; }
         public bool RunDebug { get; set; } = false;
         public bool RunAllTitles { get; set; } = true;
-        public List<MangaChapter> MangaChapters { get; set; } = new();
-        private List<MangaObject> _allMangaObjects { get; set; }
         public List<MangaSeries> FetchedMangaSeries { get; } = new();
-        public readonly IFileHelper _fileHelper;
 
+        private List<MangaObject> _allMangaObjects { get; set; }
+        private readonly IFileHelper _fileHelper;
         private readonly IMangaRepo _repo;
         private readonly IDebugService _debug;
         private readonly IBrowser _browser;
@@ -32,6 +31,7 @@ namespace localscrape.Manga
             _debug = debug;
             _fileHelper = debug.GetFileHelper();
             _allMangaObjects = GetAllMangas();
+            TableName = repo.GetTableName();
         }
 
         public abstract List<MangaSeries> GetMangaLinks();
@@ -78,7 +78,7 @@ namespace localscrape.Manga
 
         public virtual void RunProcess()
         {
-            Console.WriteLine($"Executing {this.GetType().Name}");
+            Console.WriteLine($"Executing {this.GetType().Name} with RunAllTitles :{RunAllTitles}");
             //override this
             //usually checks home page for latest updated manga that includes chapter links
             //checks if manga chapters is in db 
@@ -98,11 +98,11 @@ namespace localscrape.Manga
         {
             if (RunDebug)
             {
-                string sourceDebug = _debug.ReadDebugFile(TableName!, "Home", MangaSiteEnum.HomePage);
+                string sourceDebug = _debug.ReadDebugFile(TableName!, "Home", MangaSitePages.HomePage);
                 if (string.IsNullOrWhiteSpace(sourceDebug))
                 {
                     _browser.NavigateToUrl(HomePage!);
-                    _debug.WriteDebugFile(TableName!, MangaSiteEnum.HomePage, "Home", _browser.GetPageSource());
+                    _debug.WriteDebugFile(TableName!, MangaSitePages.HomePage, "Home", _browser.GetPageSource());
                 }
                 else
                 {
@@ -123,11 +123,11 @@ namespace localscrape.Manga
         {
             if (RunDebug)
             {
-                string sourceDebug = _debug.ReadDebugFile(TableName!, manga.MangaTitle!, MangaSiteEnum.ChapterPage);
+                string sourceDebug = _debug.ReadDebugFile(TableName!, manga.MangaTitle!, MangaSitePages.ChapterPage);
                 if (string.IsNullOrWhiteSpace(sourceDebug))
                 {
                     _browser.NavigateToUrl(manga.MangaSeriesUri!);
-                    _debug.WriteDebugFile(TableName!, MangaSiteEnum.ChapterPage, manga.MangaTitle!, _browser.GetPageSource());
+                    _debug.WriteDebugFile(TableName!, MangaSitePages.ChapterPage, manga.MangaTitle!, _browser.GetPageSource());
                 }
                 else
                 {
@@ -149,11 +149,11 @@ namespace localscrape.Manga
         {
             if (RunDebug)
             {
-                string sourceDebug = _debug.ReadDebugFile(TableName!, manga.MangaTitle!, MangaSiteEnum.MangaPage);
+                string sourceDebug = _debug.ReadDebugFile(TableName!, manga.MangaTitle!, MangaSitePages.MangaPage);
                 if (string.IsNullOrWhiteSpace(sourceDebug))
                 {
                     _browser.NavigateToUrl(url);
-                    _debug.WriteDebugFile(TableName!, MangaSiteEnum.MangaPage, manga.MangaTitle!, _browser.GetPageSource());
+                    _debug.WriteDebugFile(TableName!, MangaSitePages.MangaPage, manga.MangaTitle!, _browser.GetPageSource());
                 }
                 else
                 {
@@ -169,7 +169,7 @@ namespace localscrape.Manga
         public virtual void ProcessUpdatedChapters(MangaSeries manga, MangaObject mangaDb)
         {
             GetAllAvailableChapters(manga);
-            var chaptersInDb = mangaDb.ExtraInformation!.Split(',').ToList();
+            var chaptersInDb = mangaDb.ChaptersDownloaded;
             var uniqueChapters = manga.MangaChapters!.Select(e => e.ChapterName).Except(chaptersInDb).ToList();
             var mangaChaptersToDL = manga.MangaChapters!.Where(e => uniqueChapters.Contains(e.ChapterName) 
                  && !string.IsNullOrEmpty(e.Uri))
@@ -211,7 +211,7 @@ namespace localscrape.Manga
             foreach (var manga in FetchedMangaSeries)
             {
                 var mangaObject = mangasInDb.First(e => e.Title == manga.MangaTitle);
-                var latestChapterDownloaded = mangaObject.ExtraInformation!.Split(',').SkipLast(1).Last();
+                var latestChapterDownloaded = mangaObject.ChaptersDownloaded.Last();
                 var fetchedLatestChapter= manga.MangaChapters!.First().ChapterName;
                 if (fetchedLatestChapter == latestChapterDownloaded && mangaObject.LatestChapter != fetchedLatestChapter)
                 {
@@ -301,6 +301,11 @@ namespace localscrape.Manga
         public WebDriverWait GetBrowserWait(int seconds)
         {
             return _browser.GetWait(seconds);
+        }
+
+        public IFileHelper GetFileHelper()
+        {
+            return _fileHelper;
         }
     }
 }
