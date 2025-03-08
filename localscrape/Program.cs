@@ -14,12 +14,11 @@ AsuraScansService asuraScans = new(asuraRepo, chromeBrowser, debug);
 asuraScans.RunDebug = false;
 asuraScans.RunProcess();
 
-
 MangaRepo weebCentralRepo = new("WeebCentral");
+edgeBrowser.SetTimeout(15);
 WeebCentralService weebCentralService = new(weebCentralRepo, edgeBrowser, debug);
 weebCentralService.RunDebug = false;
 weebCentralService.RunProcess();
-
 
 MangaRepo flameScansRepo = new("FlameScans");
 edgeBrowser = new(BrowserType.Edge);

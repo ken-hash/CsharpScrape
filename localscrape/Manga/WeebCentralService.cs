@@ -80,9 +80,8 @@ namespace localscrape.Manga
         public override void GetAllAvailableChapters(MangaSeries mangaSeries)
         {
             GoToSeriesPage(mangaSeries);
-            var wait = GetBrowserWait(5);
-            var showAllChapters = wait.Until(d => d.FindElement(By.CssSelector("button.hover\\:bg-base-300.p-2")));
-            showAllChapters.Click();
+            var showAllChapters = FindByElements(By.CssSelector("button.hover\\:bg-base-300.p-2"));
+            showAllChapters.First().Click();
             var chapterBoxes = FindByElements(By.XPath("//a[contains(@href, '/chapters/')]")).ToList();
 
             foreach (var chapter in chapterBoxes)

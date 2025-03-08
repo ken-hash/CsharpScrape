@@ -14,6 +14,7 @@ namespace localscrape.Browser
         void CloseDriver();
         string GetPageSource();
         WebDriverWait GetWait(int seconds);
+        void SetTimeout(int seconds);
     }
 
     public class BrowserService : IBrowser
@@ -24,6 +25,7 @@ namespace localscrape.Browser
         public BrowserService(BrowserType browserType)
         {
             _driver = StartBrowser(browserType);
+            _driver.Manage().Timeouts().PageLoad = TimeSpan.FromSeconds(5);
         }
 
         private IWebDriver StartBrowser(BrowserType browserType)
@@ -41,7 +43,15 @@ namespace localscrape.Browser
 
         public void NavigateToUrl(string Url)
         {
-            _driver.Navigate().GoToUrl(Url);
+            try
+            {
+                _driver.Navigate().GoToUrl(Url);
+            }
+            catch (WebDriverTimeoutException)
+            {
+                IJavaScriptExecutor js = (IJavaScriptExecutor)_driver;
+                js.ExecuteScript("window.stop();");
+            }
         }
 
         public void CloseDriver()
@@ -67,6 +77,11 @@ namespace localscrape.Browser
         public WebDriverWait GetWait(int seconds)
         {
             return new WebDriverWait(_driver, TimeSpan.FromSeconds(seconds));
+        }
+
+        public void SetTimeout(int seconds)
+        {
+            _driver.Manage().Timeouts().PageLoad = TimeSpan.FromSeconds(seconds);
         }
     }
 }

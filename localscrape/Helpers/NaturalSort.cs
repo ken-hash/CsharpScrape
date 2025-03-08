@@ -11,21 +11,45 @@ public class NaturalSortComparer : IComparer<string?>
     {
         var regex = new Regex(@"\d+");
 
-        var xParts = regex.Split(x);
-        var yParts = regex.Split(y);
+        if (x == null || y == null) return string.Compare(x, y, StringComparison.OrdinalIgnoreCase);
 
-        int minLen = Math.Min(xParts.Length, yParts.Length);
-        for (int i = 0; i < minLen; i++)
+        bool xHasNumber = regex.IsMatch(x);
+        bool yHasNumber = regex.IsMatch(y);
+        if (!xHasNumber && yHasNumber) return -1;
+        if (xHasNumber && !yHasNumber) return 1;
+
+        var xMatches = regex.Matches(x);
+        var yMatches = regex.Matches(y);
+
+        int xIndex = 0, yIndex = 0;
+        int xPos = 0, yPos = 0;
+
+        while (xIndex < x.Length && yIndex < y.Length)
         {
-            if (xParts[i] != yParts[i])
+            if (char.IsDigit(x[xIndex]) && char.IsDigit(y[yIndex]))
             {
-                if (int.TryParse(xParts[i], out int xNum) && int.TryParse(yParts[i], out int yNum))
-                {
-                    return xNum.CompareTo(yNum);
-                }
-                return string.Compare(xParts[i], yParts[i], StringComparison.OrdinalIgnoreCase);
+                var xNumStr = xMatches[xPos++].Value;
+                var yNumStr = yMatches[yPos++].Value;
+
+                int xNum = int.Parse(xNumStr);
+                int yNum = int.Parse(yNumStr);
+
+                int result = xNum.CompareTo(yNum);
+                if (result != 0) return result;
+
+                xIndex += xNumStr.Length;
+                yIndex += yNumStr.Length;
+            }
+            else
+            {
+                int result = x[xIndex].CompareTo(y[yIndex]);
+                if (result != 0) return result;
+
+                xIndex++;
+                yIndex++;
             }
         }
+
         return x.Length.CompareTo(y.Length);
     }
 }
