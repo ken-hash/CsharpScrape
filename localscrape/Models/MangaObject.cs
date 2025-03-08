@@ -7,6 +7,12 @@ namespace localscrape.Models
         public string? LatestChapter { get; set; }
         public DateTime LastUpdated { get; set; }
         public string? ExtraInformation { get; set; }
-        public virtual string? TableName { get; set; }
+        public List<string> ChaptersDownloaded
+        {
+            get
+            {
+                return ExtraInformation!.Split(',').SkipLast(1).ToList();
+            }
+        }
     }
 }

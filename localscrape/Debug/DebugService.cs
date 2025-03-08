@@ -5,9 +5,8 @@ namespace localscrape.Debug
 {
     public interface IDebugService
     {
-        string DebugFolder { get; set; }
-        void WriteDebugFile(string tableName, MangaSiteEnum site, string mangaTitle, string writeLogs);
-        string ReadDebugFile(string tableName, string mangaTitle, MangaSiteEnum mangaSite);
+        void WriteDebugFile(string tableName, MangaSitePages site, string mangaTitle, string writeLogs);
+        string ReadDebugFile(string tableName, string mangaTitle, MangaSitePages mangaSite);
         IFileHelper GetFileHelper();
     }
 
@@ -22,12 +21,12 @@ namespace localscrape.Debug
             DebugFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "DebugFiles");
         }
 
-        public void WriteDebugFile(string tableName, MangaSiteEnum site, string mangaTitle, string writeLogs)
+        public void WriteDebugFile(string tableName, MangaSitePages site, string mangaTitle, string writeLogs)
         {
             _helper.WriteFile(writeLogs, Path.Combine(DebugFolder, tableName, mangaTitle, $"{Enum.GetName(site)}.html"));
         }
 
-        public string ReadDebugFile(string tableName, string mangaTitle, MangaSiteEnum site)
+        public string ReadDebugFile(string tableName, string mangaTitle, MangaSitePages site)
         {
             try
             {

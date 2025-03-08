@@ -9,6 +9,9 @@ namespace localscrape.Manga
 {
     public class WeebCentralService : MangaService
     {
+        public override string? HomePage { get => "https://weebcentral.com/"; }
+        public override string? SeriesUrl { get => "https://weebcentral.com/series/"; }
+
         private readonly MangaSeries? SingleManga;
         private readonly HashSet<string> BlockedFileNames = new(StringComparer.OrdinalIgnoreCase)
         {
@@ -19,9 +22,6 @@ namespace localscrape.Manga
         public WeebCentralService(IMangaRepo repo, IBrowser browser, IDebugService debug, MangaSeries? mangaSeries = null)
             : base(repo, browser, debug)
         {
-            HomePage = "https://weebcentral.com/";
-            SeriesUrl = "https://weebcentral.com/series/";
-            TableName = repo.GetTableName();
             SingleManga = mangaSeries;
             RunAllTitles = mangaSeries is null;
         }
@@ -105,9 +105,11 @@ namespace localscrape.Manga
 
         public override List<MangaImages> GetMangaImages(MangaChapter manga)
         {
+            var fileHelper = GetFileHelper();
             var images = base.GetMangaImages(manga);
-            images.Where(img => _fileHelper.IsAnImage(img.ImageFileName!) 
-                && !BlockedFileNames.Contains(img.ImageFileName!) && !Regex.IsMatch(img.ImageFileName!, "-thumb-small\\.webp"))
+            images.Where(img => fileHelper.IsAnImage(img.ImageFileName!) 
+                && !BlockedFileNames.Contains(img.ImageFileName!) 
+                && !Regex.IsMatch(img.ImageFileName!, "-thumb-small\\.webp"))
                 .ToList();
 
             return images;

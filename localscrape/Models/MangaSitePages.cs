@@ -1,6 +1,6 @@
 ﻿namespace localscrape.Models
 {
-    public enum MangaSiteEnum
+    public enum MangaSitePages
     {
         HomePage,
         MangaPage,

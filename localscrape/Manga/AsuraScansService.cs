@@ -9,6 +9,9 @@ namespace localscrape.Manga
 {
     public class AsuraScansService : MangaService
     {
+        public override string? HomePage { get => "https://asuracomic.net"; }
+        public override string? SeriesUrl { get => "https://asuracomic.net/series"; }
+
         private readonly MangaSeries? SingleManga;
         private readonly HashSet<string> BlockedFileNames = new(StringComparer.OrdinalIgnoreCase)
         {
@@ -18,9 +21,6 @@ namespace localscrape.Manga
         public AsuraScansService(IMangaRepo repo, IBrowser browser, IDebugService debug, MangaSeries? mangaSeries = null)
             : base(repo, browser, debug)
         {
-            HomePage = "https://asuracomic.net";
-            SeriesUrl = "https://asuracomic.net/series";
-            TableName = repo.GetTableName();
             SingleManga = mangaSeries;
             RunAllTitles = mangaSeries is null;
         }
@@ -95,14 +95,15 @@ namespace localscrape.Manga
 
         public override List<MangaImages> GetMangaImages(MangaChapter manga)
         {
+            var fileHelper = GetFileHelper();
             var images = FindByElements(By.XPath("//img[@alt and normalize-space(@alt) != '']"))
                 .Select(image => new MangaImages
                 {
                     ImageFileName = image.GetAttribute("src").Split('/').Last(),
-                    FullPath = Path.Combine(_fileHelper.GetMangaDownloadFolder(), manga.MangaTitle!, manga.ChapterName!, image.GetAttribute("src").Split('/').Last()),
+                    FullPath = Path.Combine(fileHelper.GetMangaDownloadFolder(), manga.MangaTitle!, manga.ChapterName!, image.GetAttribute("src").Split('/').Last()),
                     Uri = image.GetAttribute("src")
                 })
-                .Where(img => _fileHelper.IsAnImage(img.ImageFileName!) && !BlockedFileNames.Contains(img.ImageFileName!) && !Regex.IsMatch(img.ImageFileName!, "-thumb-small\\.webp"))
+                .Where(img => fileHelper.IsAnImage(img.ImageFileName!) && !BlockedFileNames.Contains(img.ImageFileName!) && !Regex.IsMatch(img.ImageFileName!, "-thumb-small\\.webp"))
                 .ToList();
 
             return images;
