@@ -211,10 +211,11 @@ namespace localscrape.Manga
             foreach (var manga in FetchedMangaSeries)
             {
                 var mangaObject = mangasInDb.First(e => e.Title == manga.MangaTitle);
-                var latestChapter = mangaObject.ExtraInformation!.Split(',').SkipLast(1).Last();
-                if (manga.MangaChapters!.First().ChapterName == latestChapter)
+                var latestChapterDownloaded = mangaObject.ExtraInformation!.Split(',').SkipLast(1).Last();
+                var fetchedLatestChapter= manga.MangaChapters!.First().ChapterName;
+                if (fetchedLatestChapter == latestChapterDownloaded && mangaObject.LatestChapter != fetchedLatestChapter)
                 {
-                    mangaObject.LatestChapter = latestChapter;
+                    mangaObject.LatestChapter = latestChapterDownloaded;
                     mangaObject.LastUpdated = DateTime.Now;
                     UpdateMangaSeries(mangaObject);
                 }
