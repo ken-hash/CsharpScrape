@@ -11,17 +11,19 @@ namespace localscrape.Manga
     {
         public override string? HomePage { get => "https://asuracomic.net"; }
         public override string? SeriesUrl { get => "https://asuracomic.net/series"; }
-
+        
+        private readonly IMangaReaderRepo _readerRepo;
         private readonly MangaSeries? SingleManga;
         private readonly HashSet<string> BlockedFileNames = new(StringComparer.OrdinalIgnoreCase)
         {
             "close-icon.png", "logo.webp", "google.webp", "http"
         };
 
-        public AsuraScansService(IMangaRepo repo, IBrowser browser, IDebugService debug, MangaSeries? mangaSeries = null)
+        public AsuraScansService(IMangaRepo repo, IBrowser browser, IDebugService debug, IMangaReaderRepo readerRepo, MangaSeries? mangaSeries = null)
             : base(repo, browser, debug)
         {
             SingleManga = mangaSeries;
+            _readerRepo = readerRepo;
             RunAllTitles = mangaSeries is null;
         }
 
@@ -41,6 +43,7 @@ namespace localscrape.Manga
                     GetAllAvailableChapters(SingleManga);
                 }
                 ProcessFetchedManga();
+                _ = _readerRepo.UpdateLatestUpdate("Asura", HomePage!).Result;
             }
             finally
             {
