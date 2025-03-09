@@ -288,13 +288,7 @@ namespace localscrape.Manga
 
         public virtual string ExtractChapterName(string rawText)
         {
-            var match = Regex.Match(rawText, @"Chapter\s*(\d+(?:\.\d+)?)");
-            return match.Success ? match.Groups[1].Value : string.Empty;
-        }
-
-        public virtual string GetChapterName(string rawText)
-        {
-            var match = Regex.Match(rawText, @"chapter\s(\d+(\.\d+)?)", RegexOptions.IgnoreCase);
+            var match = Regex.Match(rawText, @"Chapter\s*(\d+(?:\.\d+)?)", RegexOptions.IgnoreCase);
             return match.Success ? match.Groups[1].Value : string.Empty;
         }
 

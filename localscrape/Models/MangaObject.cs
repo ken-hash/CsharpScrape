@@ -11,7 +11,7 @@ namespace localscrape.Models
         {
             get
             {
-                return ExtraInformation!.Split(',').SkipLast(1).ToList();
+                return ExtraInformation!.Split(',').Where(e=>!string.IsNullOrWhiteSpace(e)).ToList();
             }
         }
     }

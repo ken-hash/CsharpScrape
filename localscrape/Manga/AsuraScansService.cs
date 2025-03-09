@@ -15,7 +15,7 @@ namespace localscrape.Manga
         private readonly MangaSeries? SingleManga;
         private readonly HashSet<string> BlockedFileNames = new(StringComparer.OrdinalIgnoreCase)
         {
-            "close-icon.png", "logo.webp", "google.webp"
+            "close-icon.png", "logo.webp", "google.webp", "http"
         };
 
         public AsuraScansService(IMangaRepo repo, IBrowser browser, IDebugService debug, MangaSeries? mangaSeries = null)
@@ -79,7 +79,7 @@ namespace localscrape.Manga
 
             foreach (var chapter in chapterBoxes)
             {
-                var chapterName = GetChapterName(chapter.Text.Trim());
+                var chapterName = ExtractChapterName(chapter.Text.Trim());
                 if (!string.IsNullOrEmpty(chapterName))
                 {
                     mangaSeries.MangaChapters ??= new List<MangaChapter>();
@@ -105,7 +105,6 @@ namespace localscrape.Manga
                 })
                 .Where(img => fileHelper.IsAnImage(img.ImageFileName!) && !BlockedFileNames.Contains(img.ImageFileName!) && !Regex.IsMatch(img.ImageFileName!, "-thumb-small\\.webp"))
                 .ToList();
-
             return images;
         }
     }

@@ -82,6 +82,7 @@ namespace localscrape.Manga
             GoToSeriesPage(mangaSeries);
             var showAllChapters = FindByElements(By.CssSelector("button.hover\\:bg-base-300.p-2"));
             showAllChapters.First().Click();
+            Thread.Sleep(3000);
             var chapterBoxes = FindByElements(By.XPath("//a[contains(@href, '/chapters/')]")).ToList();
 
             foreach (var chapter in chapterBoxes)
@@ -89,7 +90,7 @@ namespace localscrape.Manga
                 var chapterTextElem = chapter.FindElements(By.CssSelector("span.grow.flex.items-center.gap-2 > span:first-child"));
                 if (chapterTextElem.Count == 0)
                     continue;
-                var chapterName = GetChapterName(chapterTextElem.First().Text.Trim());
+                var chapterName = ExtractChapterName(chapterTextElem.First().Text.Trim());
                 if (!string.IsNullOrEmpty(chapterName))
                 {
                     mangaSeries.MangaChapters ??= new List<MangaChapter>();
