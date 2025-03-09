@@ -92,7 +92,7 @@ namespace localscrape.Manga
 
             for (int x=0;x<chapterBoxes.Count;x++)
             {
-                var chapterName = GetChapterName(chapterBoxes[x]);
+                var chapterName = ExtractChapterName(chapterBoxes[x]);
                 if (!string.IsNullOrEmpty(chapterName))
                 {
                     mangaSeries.MangaChapters ??= new List<MangaChapter>();
@@ -110,10 +110,11 @@ namespace localscrape.Manga
         {
             var fileHelper = GetFileHelper();
             var images = FindByElements(By.XPath("//img[@alt and normalize-space(@alt) != '']"))
-                .Select(image => new MangaImages
+                .Select(image => 
+                new MangaImages
                 {
-                    ImageFileName = image.GetAttribute("src").Split('/').Last().Split('?').First(),
-                    FullPath = Path.Combine(fileHelper.GetMangaDownloadFolder(), manga.MangaTitle!, manga.ChapterName!, image.GetAttribute("src").Split('/').Last()),
+                    ImageFileName = Uri.UnescapeDataString(image.GetAttribute("src").Split('/').Last().Split('?').First()),
+                    FullPath = Path.Combine(fileHelper.GetMangaDownloadFolder(), manga.MangaTitle!, manga.ChapterName!, Uri.UnescapeDataString(image.GetAttribute("src").Split('/').Last())),
                     Uri = image.GetAttribute("src")
                 })
                 .Where(img => fileHelper.IsAnImage(img.ImageFileName!) && !BlockedFileNames.Contains(img.ImageFileName!) && !Regex.IsMatch(img.ImageFileName!, "-thumb-small\\.webp"))

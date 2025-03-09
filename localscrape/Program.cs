@@ -10,7 +10,9 @@ BrowserService edgeBrowser = new(BrowserType.Edge);
 BrowserService chromeBrowser = new(BrowserType.Chrome);
 
 MangaRepo asuraRepo = new("AsuraScans");
-AsuraScansService asuraScans = new(asuraRepo, chromeBrowser, debug);
+RestService restService = new("http://192.168.50.11");
+MangaReaderRepo readerRepo = new(restService);
+AsuraScansService asuraScans = new(asuraRepo, chromeBrowser, debug, readerRepo);
 asuraScans.RunDebug = false;
 asuraScans.RunProcess();
 
