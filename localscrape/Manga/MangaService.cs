@@ -19,6 +19,7 @@ namespace localscrape.Manga
         public List<MangaSeries> FetchedMangaSeries { get; } = new();
 
         private List<MangaObject> _allMangaObjects { get; set; }
+        private readonly IDownloadHelper _downloadHelper;
         private readonly IFileHelper _fileHelper;
         private readonly IMangaRepo _repo;
         private readonly IDebugService _debug;
@@ -32,6 +33,7 @@ namespace localscrape.Manga
             _fileHelper = debug.GetFileHelper();
             _allMangaObjects = GetAllMangas();
             TableName = repo.GetTableName();
+            _downloadHelper = new DownloadHelper();
         }
 
         public abstract List<MangaSeries> GetMangaLinks();
@@ -255,15 +257,8 @@ namespace localscrape.Manga
         {
             foreach (MangaImages image in mangaImages)
             {
-                string chapter = Directory.GetParent(image.FullPath!)!.Name;
-                string title = Directory.GetParent(image.FullPath!)!.Parent!.Name;
-                DownloadObject queue = new()
-                {
-                    ChapterNum = chapter,
-                    Title = title,
-                    FileId = image.ImageFileName!,
-                    Url = image.Uri!,
-                };
+                var queue = _downloadHelper.CreateDownloadObject(image.FullPath!, image.Uri!, image.ImageFileName, image.Base64String);
+                
                 _repo.InsertQueue(queue);
             }
         }
@@ -300,6 +295,25 @@ namespace localscrape.Manga
         public IFileHelper GetFileHelper()
         {
             return _fileHelper;
+        }
+
+        public Screenshot GetScreenshot()
+        {
+            return _browser.GetScreenshot();
+        }
+
+        public List<MangaImages> ScreenShotWholePage(string fullPath, string domain)
+        {
+            List<MangaImages> mangaImages = new();
+            var screenshots = _browser.ScreenShotWholePage();
+            for(int i = 0; i < screenshots.Count; i++)
+            {
+                string fileName = $"{i}.png";
+                string fullFilePath = Path.Combine(fullPath, fileName);
+                var string64 = screenshots[i].AsBase64EncodedString;
+                mangaImages.Add(new MangaImages { ImageFileName = fileName, FullPath = fullFilePath, Base64String = string64 , Uri = domain});
+            }
+            return mangaImages;
         }
     }
 }

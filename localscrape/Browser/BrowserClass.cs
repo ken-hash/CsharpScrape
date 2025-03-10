@@ -15,6 +15,8 @@ namespace localscrape.Browser
         string GetPageSource();
         WebDriverWait GetWait(int seconds);
         void SetTimeout(int seconds);
+        Screenshot GetScreenshot();
+        List<Screenshot> ScreenShotWholePage();
     }
 
     public class BrowserService : IBrowser
@@ -82,6 +84,37 @@ namespace localscrape.Browser
         public void SetTimeout(int seconds)
         {
             _driver.Manage().Timeouts().PageLoad = TimeSpan.FromSeconds(seconds);
+        }
+
+        public Screenshot GetScreenshot()
+        {
+            return ((ITakesScreenshot)_driver).GetScreenshot();
+        }
+
+        public List<Screenshot> ScreenShotWholePage()
+        {
+            List<Screenshot> screenshots = new();
+            long lastHeight = 0;
+            long newHeight = 1;
+
+            while (true)
+            {
+                Screenshot screenshot = ((ITakesScreenshot)_driver).GetScreenshot();
+
+                ((IJavaScriptExecutor)_driver).ExecuteScript("window.scrollBy(0, window.innerHeight);");
+                Thread.Sleep(1000);
+
+                lastHeight = newHeight;
+                newHeight = (long)(_driver as IJavaScriptExecutor)!.ExecuteScript("return document.body.scrollHeight");
+
+                screenshots.Add(screenshot);
+                long scrollPosition = (long)((IJavaScriptExecutor)_driver).ExecuteScript("return window.scrollY + window.innerHeight");
+                long totalHeight = (long)((IJavaScriptExecutor)_driver).ExecuteScript("return document.body.scrollHeight");
+
+                if (scrollPosition >= totalHeight)
+                    break;
+            }
+            return screenshots;
         }
     }
 }

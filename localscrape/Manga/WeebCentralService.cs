@@ -3,6 +3,7 @@ using localscrape.Debug;
 using localscrape.Models;
 using localscrape.Repo;
 using OpenQA.Selenium;
+using System;
 using System.Text.RegularExpressions;
 
 namespace localscrape.Manga
@@ -16,7 +17,10 @@ namespace localscrape.Manga
         private readonly HashSet<string> BlockedFileNames = new(StringComparer.OrdinalIgnoreCase)
         {
             "01J8ASTVA4P1F2KWD9BN8YMQH7.webp", "01JHXXEA5H4RYV3NAQVKGYAFVZ.jpg", "01JHXXCP5XR40JWCMV9R2VNVRV.jpg",
-            "01JHXXFS4V8SNK0EVYCZ9T0WC0.jpg", "01JFH1FQQCE4978WHX0FVC4ZZR.jpg", "01JHY152CQBTB9G3C4P5TQEHV5.jpg"
+            "01JHXXFS4V8SNK0EVYCZ9T0WC0.jpg", "01JFH1FQQCE4978WHX0FVC4ZZR.jpg", "01JHY152CQBTB9G3C4P5TQEHV5.jpg",
+            "01J8ASTVA4P1F2KWD9BN8YMQH7.webp", "01JHY1JHJB23CM6Z80A1HXN4RJ.jpg", "01JNT09EWDN41KFY2H5C1SSPNR.jpg",
+            "01JNSZBT9VXJ5TNYEBAQDD5VZC.jpg", "01JNSWGS067VH92020JEW4XCK0.jpg", "01JNSX3SEYTK9MRTZ1CRSBGM9J.jpg",
+            "brand.png"
         };
 
         public WeebCentralService(IMangaRepo repo, IBrowser browser, IDebugService debug, MangaSeries? mangaSeries = null)
@@ -107,13 +111,25 @@ namespace localscrape.Manga
         public override List<MangaImages> GetMangaImages(MangaChapter manga)
         {
             var fileHelper = GetFileHelper();
-            var images = base.GetMangaImages(manga);
-            images.Where(img => fileHelper.IsAnImage(img.ImageFileName!) 
+            var images = GetMangaImagesString64(manga);
+            var filteredImages = images.Where(img => fileHelper.IsAnImage(img.ImageFileName!) 
                 && !BlockedFileNames.Contains(img.ImageFileName!) 
-                && !Regex.IsMatch(img.ImageFileName!, "-thumb-small\\.webp"))
+                && !Regex.IsMatch(img.ImageFileName!, "-thumb-small\\.webp")
+                && img.ImageFileName!.Length<20)
                 .ToList();
 
-            return images;
+            return filteredImages;
+        }
+
+        private List<MangaImages> GetMangaImagesString64(MangaChapter manga)
+        {
+            var fileHelper = GetFileHelper();
+            List<MangaImages> mangaImages = new();
+            Thread.Sleep(2000);
+            List<IWebElement> images = FindByCssSelector("img");
+            var fullPath = Path.Combine(fileHelper.GetMangaDownloadFolder(), manga.MangaTitle!, manga.ChapterName!);
+            mangaImages = ScreenShotWholePage(fullPath, HomePage!);
+            return mangaImages;
         }
 
         public override string ExtractMangaTitle(string rawText)
