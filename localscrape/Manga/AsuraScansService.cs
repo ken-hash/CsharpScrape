@@ -16,7 +16,7 @@ namespace localscrape.Manga
         private readonly MangaSeries? SingleManga;
         private readonly HashSet<string> BlockedFileNames = new(StringComparer.OrdinalIgnoreCase)
         {
-            "close-icon.png", "logo.webp", "google.webp", "http"
+            "close-icon.png", "logo.webp", "google.webp"
         };
 
         public AsuraScansService(IMangaRepo repo, IBrowser browser, IDebugService debug, IMangaReaderRepo readerRepo, MangaSeries? mangaSeries = null)
@@ -106,7 +106,7 @@ namespace localscrape.Manga
                     FullPath = Path.Combine(fileHelper.GetMangaDownloadFolder(), manga.MangaTitle!, manga.ChapterName!, image.GetAttribute("src").Split('/').Last()),
                     Uri = image.GetAttribute("src")
                 })
-                .Where(img => fileHelper.IsAnImage(img.ImageFileName!) && !BlockedFileNames.Contains(img.ImageFileName!) && !Regex.IsMatch(img.ImageFileName!, "-thumb-small\\.webp"))
+                .Where(img => fileHelper.IsAnImage(img.ImageFileName!) && !BlockedFileNames.Contains(img.ImageFileName!) && !Regex.IsMatch(img.ImageFileName!, "http"))
                 .ToList();
             return images;
         }

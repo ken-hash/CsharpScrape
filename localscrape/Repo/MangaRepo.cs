@@ -110,9 +110,10 @@ namespace localscrape.Repo
                     Title = downloadObject.Title,
                     ChapterNum = downloadObject.ChapterNum,
                     FileId = downloadObject.FileId,
-                    Url = downloadObject.Url
+                    Url = downloadObject.Url,
+                    String64 = downloadObject.String64
                 };
-                string query = $"INSERT INTO DownloadQueue(Title, ChapterNum, FileId, Url) VALUES (@Title, @ChapterNum, @FileId, @Url)";
+                string query = $"INSERT INTO DownloadQueue(Title, ChapterNum, FileId, Url, String64) VALUES (@Title, @ChapterNum, @FileId, @Url, @String64)";
                 sql.Execute(query, parameters);
             }
         }

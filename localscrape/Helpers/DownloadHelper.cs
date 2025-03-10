@@ -4,19 +4,23 @@ namespace localscrape.Helpers
 {
     public interface IDownloadHelper
     {
-        DownloadObject CreateDownloadObject(string downloadPath, string uri);
+        DownloadObject CreateDownloadObject(string downloadPath, string uri, string? fileName=null, string? string64=null);
     }
 
     public class DownloadHelper : IDownloadHelper
     {
-        public DownloadObject CreateDownloadObject(string downloadPath, string uri)
+        public DownloadObject CreateDownloadObject(string downloadPath, string uri, string? fileName, string? string64)
         {
+            string chapter = Directory.GetParent(downloadPath)!.Name;
+            string title = Directory.GetParent(downloadPath)!.Parent!.Name;
+
             DownloadObject dlObject = new()
             {
-                Title = Path.GetFileName(Path.GetDirectoryName(downloadPath))!,
-                ChapterNum = Path.GetFileName(downloadPath),
-                FileId = uri.Split('/').Last(),
-                Url = uri
+                Title = title,
+                ChapterNum = chapter,
+                FileId = string.IsNullOrEmpty(fileName) ? uri.Split('/').Last() : fileName,
+                Url = uri,
+                String64 = string64
             };
 
             if (Regex.IsMatch(dlObject.FileId, @"\.(webp|jpeg)$", RegexOptions.IgnoreCase))
