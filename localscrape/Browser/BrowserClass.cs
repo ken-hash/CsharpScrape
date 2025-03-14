@@ -3,6 +3,7 @@ using OpenQA.Selenium;
 using OpenQA.Selenium.Chrome;
 using OpenQA.Selenium.Edge;
 using OpenQA.Selenium.Support.UI;
+using System.Collections.ObjectModel;
 
 namespace localscrape.Browser
 {
@@ -17,17 +18,21 @@ namespace localscrape.Browser
         void SetTimeout(int seconds);
         Screenshot GetScreenshot();
         List<Screenshot> ScreenShotWholePage();
+        IWebElement? SafeGetElement(IWebElement element, By by);
     }
 
     public class BrowserService : IBrowser
     {
         private readonly IWebDriver _driver;
         public string PageSource { get => _driver.PageSource; }
+        private const int _retries = 3;
+        private WebDriverWait _wait;
 
         public BrowserService(BrowserType browserType)
         {
             _driver = StartBrowser(browserType);
             _driver.Manage().Timeouts().PageLoad = TimeSpan.FromSeconds(5);
+            _wait = new WebDriverWait(_driver, TimeSpan.FromSeconds(5));
         }
 
         private IWebDriver StartBrowser(BrowserType browserType)
@@ -63,7 +68,42 @@ namespace localscrape.Browser
 
         public List<IWebElement> FindElements(By by)
         {
-            return _driver.FindElements(by).ToList();
+            try
+            {
+                var elements = SafeFindElements(by);
+                if (elements is null)
+                    return new List<IWebElement>();
+                return elements.ToList();
+            }
+            catch
+            {
+                return new List<IWebElement>(); 
+            }
+        }
+
+        private ReadOnlyCollection<IWebElement>? SafeFindElements(By by, IWebElement? webElement=null)
+        {
+            for (int i = 0; i < _retries; i++)
+            {
+                try
+                {
+
+                    if (webElement is null)
+                        return _wait.Until(e => _driver.FindElements(by));
+                    return _wait.Until(e => webElement?.FindElements(by));
+                }
+                catch (StaleElementReferenceException)
+                {
+                    Console.WriteLine("Stale element detected, retrying...");
+                    throw;
+                }
+            }
+            return null;
+        }
+
+        public IWebElement? SafeGetElement(IWebElement element, By by)
+        {
+            return SafeFindElements(by, element)?.First();
         }
 
         public string GetPageSource()
@@ -84,6 +124,7 @@ namespace localscrape.Browser
         public void SetTimeout(int seconds)
         {
             _driver.Manage().Timeouts().PageLoad = TimeSpan.FromSeconds(seconds);
+            _wait = new WebDriverWait(_driver, TimeSpan.FromSeconds(5));
         }
 
         public Screenshot GetScreenshot()
@@ -102,7 +143,7 @@ namespace localscrape.Browser
                 Screenshot screenshot = ((ITakesScreenshot)_driver).GetScreenshot();
 
                 ((IJavaScriptExecutor)_driver).ExecuteScript("window.scrollBy(0, window.innerHeight);");
-                Thread.Sleep(1000);
+                Thread.Sleep(2000);
 
                 lastHeight = newHeight;
                 newHeight = (long)(_driver as IJavaScriptExecutor)!.ExecuteScript("return document.body.scrollHeight");

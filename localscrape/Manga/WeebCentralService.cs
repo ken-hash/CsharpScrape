@@ -60,13 +60,15 @@ namespace localscrape.Manga
 
             foreach (var titleBox in mangaTitles)
             {
-                var mangaSeriesLink = titleBox.FindElement(By.CssSelector("a"));
+                var mangaSeriesLink = SafeGetElement(titleBox,By.CssSelector("a"));
+                if (mangaSeriesLink is null)
+                    continue;
                 var seriesLink = mangaSeriesLink.GetAttribute("href");
                 var mangaTitle = ExtractMangaTitle(seriesLink);
                 if (!allMangasInDb.Any(e => e.Title == mangaTitle))
                     continue;
-                var latestChapterBox = titleBox.FindElement(By.CssSelector(".flex.items-center.gap-2.opacity-70"));
-                var lastChapterAdded = ExtractChapterName(latestChapterBox.Text.Trim());
+                var latestChapterBox = SafeGetElement(titleBox, By.CssSelector(".flex.items-center.gap-2.opacity-70"));
+                var lastChapterAdded = ExtractChapterName(latestChapterBox?.Text.Trim());
 
                 FetchedMangaSeries.Add(new MangaSeries
                 {
@@ -91,10 +93,10 @@ namespace localscrape.Manga
 
             foreach (var chapter in chapterBoxes)
             {
-                var chapterTextElem = chapter.FindElements(By.CssSelector("span.grow.flex.items-center.gap-2 > span:first-child"));
-                if (chapterTextElem.Count == 0)
+                var chapterTextElem = SafeGetElement(chapter,By.CssSelector("span.grow.flex.items-center.gap-2 > span:first-child"));
+                if (chapterTextElem is  null)
                     continue;
-                var chapterName = ExtractChapterName(chapterTextElem.First().Text.Trim());
+                var chapterName = ExtractChapterName(chapterTextElem.Text.Trim());
                 if (!string.IsNullOrEmpty(chapterName))
                 {
                     mangaSeries.MangaChapters ??= new List<MangaChapter>();
@@ -137,8 +139,10 @@ namespace localscrape.Manga
             return rawText.Trim().Split('/').Last();
         }
 
-        public override string ExtractChapterName(string rawText)
+        public override string ExtractChapterName(string? rawText)
         {
+            if (string.IsNullOrEmpty(rawText))
+                return string.Empty;
             var chapterText = rawText;
 
             string numChapterText = rawText;

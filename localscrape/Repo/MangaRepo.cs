@@ -1,4 +1,5 @@
 using Dapper;
+using dotenv.net;
 using localscrape.Helpers;
 using localscrape.Models;
 using MySqlConnector;
@@ -19,11 +20,21 @@ namespace localscrape.Repo
     {
         private readonly string? _tableName;
         private readonly string? _connectionString;
+        private DotEnvHelper? _envHelper;
+
         public MangaRepo(string? TableName)
         {
-            DotEnvHelper dotEnv = new();
+            if (_envHelper is null)
+            {
+                _envHelper = new DotEnvHelper();
+            }
             _tableName = TableName;
-            _connectionString = dotEnv.GetEnvValue("connectionString");
+            _connectionString = _envHelper.GetEnvValue("connectionString");
+        }
+
+        public MangaRepo(string? tableName, DotEnvOptions options) : this(tableName)
+        {
+            _envHelper = new DotEnvHelper(options);
         }
 
         public string GetTableName()
