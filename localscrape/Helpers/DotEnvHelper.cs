@@ -8,6 +8,11 @@ namespace localscrape.Helpers
 
     public class DotEnvHelper : IDotEnvHelper
     {
+        public DotEnvHelper(DotEnvOptions options)
+        {
+            DotEnv.Load(options);
+        }
+
         public DotEnvHelper()
         {
             DotEnv.Load();

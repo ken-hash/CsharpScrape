@@ -244,6 +244,11 @@ namespace localscrape.Manga
             return _browser.FindElements(by);
         }
 
+        public IWebElement? SafeGetElement(IWebElement element, By by)
+        {
+            return _browser.SafeGetElement(element, by);
+        }
+
         public void CloseBrowser()
         {
             _browser.CloseDriver();
@@ -281,8 +286,9 @@ namespace localscrape.Manga
             return match.Success ? match.Groups[1].Value : string.Empty;
         }
 
-        public virtual string ExtractChapterName(string rawText)
+        public virtual string ExtractChapterName(string? rawText)
         {
+            if (string.IsNullOrEmpty(rawText)) return string.Empty;
             var match = Regex.Match(rawText, @"Chapter\s*(\d+(?:\.\d+)?)", RegexOptions.IgnoreCase);
             return match.Success ? match.Groups[1].Value : string.Empty;
         }
