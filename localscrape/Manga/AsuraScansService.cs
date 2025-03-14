@@ -56,11 +56,13 @@ namespace localscrape.Manga
             var mangaTitles = FindByCssSelector("div.grid.grid-rows-1.grid-cols-12.m-2");
             foreach (var titleBox in mangaTitles)
             {
-                var mangaSeriesLink = titleBox.FindElement(By.CssSelector("a"));
+                var mangaSeriesLink = SafeGetElement(titleBox,By.CssSelector("a"));
+                if (mangaSeriesLink is null)
+                    continue;
                 var seriesLink = mangaSeriesLink.GetAttribute("href");
                 var mangaTitle = ExtractMangaTitle(seriesLink);
-                var latestChapterBox = titleBox.FindElement(By.CssSelector("div.flex.flex-row.justify-between.rounded-sm"));
-                var lastChapterAdded = ExtractChapterName(latestChapterBox.Text.Trim());
+                var latestChapterBox = SafeGetElement(titleBox,By.CssSelector("div.flex.flex-row.justify-between.rounded-sm"));
+                var lastChapterAdded = ExtractChapterName(latestChapterBox?.Text.Trim());
 
                 FetchedMangaSeries.Add(new MangaSeries
                 {
@@ -106,9 +108,16 @@ namespace localscrape.Manga
                     FullPath = Path.Combine(fileHelper.GetMangaDownloadFolder(), manga.MangaTitle!, manga.ChapterName!, image.GetAttribute("src").Split('/').Last()),
                     Uri = image.GetAttribute("src")
                 })
-                .Where(img => fileHelper.IsAnImage(img.ImageFileName!) && !BlockedFileNames.Contains(img.ImageFileName!) && !Regex.IsMatch(img.ImageFileName!, "http"))
+                .Where(img => fileHelper.IsAnImage(img.ImageFileName!) 
+                    && !BlockedFileNames.Contains(img.ImageFileName!) 
+                    && !Regex.IsMatch(img.ImageFileName!, "(http|small)")
+                    && img.ImageFileName!.Length<25)
                 .ToList();
-            return images;
+            if (images.Count > 5)
+            {
+                return images;
+            }
+            return new List<MangaImages>();
         }
     }
 }
