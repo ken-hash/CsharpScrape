@@ -81,14 +81,16 @@ namespace localscrape.Browser
             }
         }
 
-        private ReadOnlyCollection<IWebElement>? SafeFindElements(By by)
+        private ReadOnlyCollection<IWebElement>? SafeFindElements(By by, IWebElement? webElement=null)
         {
             for (int i = 0; i < _retries; i++)
             {
                 try
                 {
-                    var elements = _wait.Until(d => d.FindElements(by));
-                    return elements;
+
+                    if (webElement is null)
+                        return _wait.Until(e => _driver.FindElements(by));
+                    return _wait.Until(e => webElement?.FindElements(by));
                 }
                 catch (StaleElementReferenceException)
                 {
@@ -101,7 +103,7 @@ namespace localscrape.Browser
 
         public IWebElement? SafeGetElement(IWebElement element, By by)
         {
-            return SafeFindElements(by)?.First();
+            return SafeFindElements(by, element)?.First();
         }
 
         public string GetPageSource()
