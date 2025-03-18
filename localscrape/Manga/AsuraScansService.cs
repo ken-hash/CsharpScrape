@@ -41,6 +41,7 @@ namespace localscrape.Manga
                 else if (SingleManga != null)
                 {
                     GetAllAvailableChapters(SingleManga);
+                    FetchedMangaSeries.Add(SingleManga);
                 }
                 ProcessFetchedManga();
                 _ = _readerRepo.UpdateLatestUpdate("Asura", HomePage!).Result;

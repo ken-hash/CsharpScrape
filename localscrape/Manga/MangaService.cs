@@ -212,7 +212,11 @@ namespace localscrape.Manga
             var mangasInDb = GetAllMangaTitles();
             foreach (var manga in FetchedMangaSeries)
             {
-                var mangaObject = mangasInDb.First(e => e.Title == manga.MangaTitle);
+                var mangaObject = mangasInDb.FirstOrDefault(e => e.Title == manga.MangaTitle);
+                if (mangaObject is null)
+                    continue;
+                if (mangaObject.ChaptersDownloaded.Count < 1)
+                    continue;
                 var latestChapterDownloaded = mangaObject.ChaptersDownloaded.Last();
                 var fetchedLatestChapter= manga.MangaChapters!.First().ChapterName;
                 if (fetchedLatestChapter == latestChapterDownloaded && mangaObject.LatestChapter != fetchedLatestChapter)
@@ -260,12 +264,12 @@ namespace localscrape.Manga
         /// <param name="mangaImages"></param>
         public void AddImagesToDownload(List<MangaImages> mangaImages)
         {
+            var queueList = new List<DownloadObject>();
             foreach (MangaImages image in mangaImages)
             {
-                var queue = _downloadHelper.CreateDownloadObject(image.FullPath!, image.Uri!, image.ImageFileName, image.Base64String);
-                
-                _repo.InsertQueue(queue);
+                queueList.Add(_downloadHelper.CreateDownloadObject(image.FullPath!, image.Uri!, image.ImageFileName, image.Base64String));
             }
+            _repo.AddQueueList(queueList);
         }
 
         /// <summary>
