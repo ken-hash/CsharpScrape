@@ -43,6 +43,7 @@ namespace localscrape.Manga
                 else if (SingleManga != null)
                 {
                     GetAllAvailableChapters(SingleManga);
+                    FetchedMangaSeries.Add(SingleManga);
                 }
                 ProcessFetchedManga();
                 SyncDownloadedChapters();
@@ -144,6 +145,11 @@ namespace localscrape.Manga
             if (string.IsNullOrEmpty(rawText))
                 return string.Empty;
             var chapterText = rawText;
+
+            if (chapterText.Split(' ').Count() == 2)
+            {
+                return chapterText.Split(' ').Last();
+            }
 
             string numChapterText = rawText;
             string season = string.Empty;

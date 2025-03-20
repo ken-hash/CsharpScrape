@@ -15,7 +15,7 @@ namespace localscrape.Manga
         private readonly MangaSeries? SingleManga;
         private readonly HashSet<string> BlockedFileNames = new(StringComparer.OrdinalIgnoreCase)
         {
-            "desktop.jpg", "close-icon.png"
+            "desktop.jpg", "close-icon.png","angry.png","shock.png","happy.png","surprise.png","love.png"
         };
 
         public FlameScansService(IMangaRepo repo, IBrowser browser, IDebugService debug, MangaSeries? mangaSeries = null)
@@ -38,6 +38,7 @@ namespace localscrape.Manga
                 else if (SingleManga != null)
                 {
                     GetAllAvailableChapters(SingleManga);
+                    FetchedMangaSeries.Add(SingleManga);
                 }
                 ProcessFetchedManga();
                 SyncDownloadedChapters();

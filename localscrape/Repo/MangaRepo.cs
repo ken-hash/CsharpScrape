@@ -14,6 +14,7 @@ namespace localscrape.Repo
         void UpdateManga(MangaObject mangaObject);
         void InsertManga(MangaObject mangaObject);
         void InsertQueue(DownloadObject downloadObject);
+        void AddQueueList(List<DownloadObject> queueList);
     }
 
     public class MangaRepo : IMangaRepo
@@ -126,6 +127,15 @@ namespace localscrape.Repo
                 };
                 string query = $"INSERT INTO DownloadQueue(Title, ChapterNum, FileId, Url, String64) VALUES (@Title, @ChapterNum, @FileId, @Url, @String64)";
                 sql.Execute(query, parameters);
+            }
+        }
+
+        public void AddQueueList(List<DownloadObject> queueList)
+        {
+            using (MySqlConnection sql = new(_connectionString))
+            {
+                string query = $"INSERT INTO DownloadQueue(Title, ChapterNum, FileId, Url, String64) VALUES (@Title, @ChapterNum, @FileId, @Url, @String64)";
+                sql.Execute(query, queueList);
             }
         }
     }
