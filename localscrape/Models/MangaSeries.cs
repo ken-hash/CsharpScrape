@@ -2,8 +2,8 @@ namespace localscrape.Models
 {
     public class MangaSeries
     {
-        public string? MangaTitle { get; set; }
-        public string? MangaSeriesUri { get; set; }
+        public required string MangaTitle { get; set; }
+        public required string MangaSeriesUri { get; set; }
         public List<MangaChapter>? MangaChapters { get; set; }
     }
 }

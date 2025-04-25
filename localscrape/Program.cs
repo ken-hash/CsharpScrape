@@ -8,10 +8,25 @@ using localscrape.Repo;
 DebugService debug = new(new FileHelper());
 BrowserService edgeBrowser = new(BrowserType.Edge);
 BrowserService chromeBrowser = new(BrowserType.Chrome);
+#if DEBUG
+var isSingle = true;
+#else
+var isSingle = false;
+#endif
 MangaSeries? mangaSeriesOne = null;
-//var mangaSeriesOne = new MangaSeries { MangaTitle = "special-civil-servant", MangaChapters = new List<MangaChapter>() , MangaSeriesUri = "https://weebcentral.com/series/01JJ9QHB495M76A55TX4592RK0/special-civil-servant" };
+
+if (isSingle)
+{
+    mangaSeriesOne = new MangaSeries
+    {
+        MangaTitle = "Auto-Hunting-With-My-Clones",
+        MangaChapters = new List<MangaChapter>(),
+        MangaSeriesUri = "https://weebcentral.com/series/01J76XYH3NP2PBAA7D0ASA1GA8/Auto-Hunting-With-My-Clones"
+    };
+}
 
 MangaRepo asuraRepo = new("AsuraScans");
+chromeBrowser.SetTimeout(15);
 RestService restService = new("http://192.168.50.11");
 MangaReaderRepo readerRepo = new(restService);
 AsuraScansService asuraScans = new(asuraRepo, chromeBrowser, debug, readerRepo);

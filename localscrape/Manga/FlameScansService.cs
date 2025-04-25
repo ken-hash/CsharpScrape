@@ -9,8 +9,8 @@ namespace localscrape.Manga
 {
     public class FlameScansService : MangaService
     {
-        public override string? HomePage { get => "https://flamecomics.xyz"; }
-        public override string? SeriesUrl { get => "https://flamecomics.xyz/series/"; }
+        public override string HomePage { get => "https://flamecomics.xyz"; }
+        public override string SeriesUrl { get => "https://flamecomics.xyz/series/"; }
 
         private readonly MangaSeries? SingleManga;
         private readonly HashSet<string> BlockedFileNames = new(StringComparer.OrdinalIgnoreCase)
@@ -58,7 +58,7 @@ namespace localscrape.Manga
             var latestChapterTexts = FindByElements(By.XPath("//div[contains(@class, 'SeriesCard_chapterPillWrapper__0yOPE')]"))
                 .Select(e => e.Text.Trim()).ToList();
             var mangaSeriesLinks = FindByElements(By.XPath("//a[contains(@class, 'SeriesCard_chapterImageLink__cDtXf')]"))
-                .Select(e=>e.GetAttribute("href").Replace(HomePage!, "")).ToList();
+                .Select(e=>(e.GetAttribute("href")??string.Empty).Replace(HomePage, "")).ToList();
 
             for (int x=0; x< mangaSeriesLinks.Count;x++)
             {
@@ -85,11 +85,11 @@ namespace localscrape.Manga
         public override void GetAllAvailableChapters(MangaSeries mangaSeries)
         {
             GoToSeriesPage(mangaSeries);
-            var cleanedFilter = mangaSeries.MangaSeriesUri!.Replace(HomePage!,"");
+            var cleanedFilter = mangaSeries.MangaSeriesUri.Replace(HomePage,"");
             var chapterBoxes = FindByElements(By.XPath("//p[contains(@class, 'mantine-Text-root') and @data-size='md' and @data-line-clamp='true']"))
                                 .Select(e=>e.Text.Trim()).ToList();
-            var chapterLinks = FindByElements(By.XPath($"//a[starts-with(@href, '{cleanedFilter}') and not(contains(substring(@href, string-length(@href) - 3), '.'))]"))
-                                .Select(e=>e.GetAttribute("href")).ToList();
+            List<string> chapterLinks = FindByElements(By.XPath($"//a[starts-with(@href, '{cleanedFilter}') and not(contains(substring(@href, string-length(@href) - 3), '.'))]"))
+                                .Select(e=>e.GetAttribute("href")??string.Empty).ToList();
 
             for (int x=0;x<chapterBoxes.Count;x++)
             {
@@ -114,11 +114,11 @@ namespace localscrape.Manga
                 .Select(image => 
                 new MangaImages
                 {
-                    ImageFileName = Uri.UnescapeDataString(image.GetAttribute("src").Split('/').Last().Split('?').First()),
-                    FullPath = Path.Combine(fileHelper.GetMangaDownloadFolder(), manga.MangaTitle!, manga.ChapterName!, Uri.UnescapeDataString(image.GetAttribute("src").Split('/').Last())),
-                    Uri = image.GetAttribute("src")
+                    ImageFileName = Uri.UnescapeDataString(image.GetAttribute("src")?? string.Empty.Split('/').Last().Split('?').First()),
+                    FullPath = Path.Combine(fileHelper.GetMangaDownloadFolder(), manga.MangaTitle, manga.ChapterName, Uri.UnescapeDataString(image.GetAttribute("src")?? string.Empty.Split('/').Last())),
+                    Uri = image.GetAttribute("src") ?? string.Empty
                 })
-                .Where(img => fileHelper.IsAnImage(img.ImageFileName!) && !BlockedFileNames.Contains(img.ImageFileName!) && !Regex.IsMatch(img.ImageFileName!, "-thumb-small\\.webp"))
+                .Where(img => fileHelper.IsAnImage(img.ImageFileName) && !BlockedFileNames.Contains(img.ImageFileName) && !Regex.IsMatch(img.ImageFileName!, "-thumb-small\\.webp"))
                 .ToList();
 
             return images;
