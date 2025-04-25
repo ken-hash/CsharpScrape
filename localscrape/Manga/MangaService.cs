@@ -11,9 +11,9 @@ namespace localscrape.Manga
 {
     public abstract class MangaService
     {
-        public abstract string? HomePage { get; }
-        public abstract string? SeriesUrl { get; }
-        public virtual string? TableName { get; protected set; }
+        public abstract string HomePage { get; }
+        public abstract string SeriesUrl { get; }
+        public virtual string TableName { get; protected set; }
         public bool RunDebug { get; set; } = false;
         public bool RunAllTitles { get; set; } = true;
         public List<MangaSeries> FetchedMangaSeries { get; } = new();
@@ -67,11 +67,12 @@ namespace localscrape.Manga
             List<IWebElement> images = FindByCssSelector("img");
             foreach (IWebElement image in images)
             {
-                string url = image.GetAttribute("src");
+                string url = image.GetAttribute("src")??string.Empty;
+                if (string.IsNullOrEmpty(url)) continue;
                 string fileName = url.Split('/').Last();
                 if (_fileHelper.IsAnImage(fileName))
                 {
-                    string fullPath = Path.Combine(_fileHelper.GetMangaDownloadFolder(), manga.MangaTitle!, manga.ChapterName!, fileName);
+                    string fullPath = Path.Combine(_fileHelper.GetMangaDownloadFolder(), manga.MangaTitle, manga.ChapterName, fileName);
                     mangaImages.Add(new MangaImages { ImageFileName = fileName, FullPath = fullPath, Uri = url });
                 }
             }
@@ -100,11 +101,11 @@ namespace localscrape.Manga
         {
             if (RunDebug)
             {
-                string sourceDebug = _debug.ReadDebugFile(TableName!, "Home", MangaSitePages.HomePage);
+                string sourceDebug = _debug.ReadDebugFile(TableName, "Home", MangaSitePages.HomePage);
                 if (string.IsNullOrWhiteSpace(sourceDebug))
                 {
-                    _browser.NavigateToUrl(HomePage!);
-                    _debug.WriteDebugFile(TableName!, MangaSitePages.HomePage, "Home", _browser.GetPageSource());
+                    _browser.NavigateToUrl(HomePage);
+                    _debug.WriteDebugFile(TableName, MangaSitePages.HomePage, "Home", _browser.GetPageSource());
                 }
                 else
                 {
@@ -113,7 +114,7 @@ namespace localscrape.Manga
             }
             else
             {
-                _browser.NavigateToUrl(HomePage!);
+                _browser.NavigateToUrl(HomePage);
             }
         }
 
@@ -125,11 +126,11 @@ namespace localscrape.Manga
         {
             if (RunDebug)
             {
-                string sourceDebug = _debug.ReadDebugFile(TableName!, manga.MangaTitle!, MangaSitePages.ChapterPage);
+                string sourceDebug = _debug.ReadDebugFile(TableName, manga.MangaTitle, MangaSitePages.ChapterPage);
                 if (string.IsNullOrWhiteSpace(sourceDebug))
                 {
-                    _browser.NavigateToUrl(manga.MangaSeriesUri!);
-                    _debug.WriteDebugFile(TableName!, MangaSitePages.ChapterPage, manga.MangaTitle!, _browser.GetPageSource());
+                    _browser.NavigateToUrl(manga.MangaSeriesUri);
+                    _debug.WriteDebugFile(TableName, MangaSitePages.ChapterPage, manga.MangaTitle, _browser.GetPageSource());
                 }
                 else
                 {
@@ -138,7 +139,7 @@ namespace localscrape.Manga
             }
             else
             {
-                _browser.NavigateToUrl(manga.MangaSeriesUri!);
+                _browser.NavigateToUrl(manga.MangaSeriesUri);
             }
         }
 
@@ -151,11 +152,11 @@ namespace localscrape.Manga
         {
             if (RunDebug)
             {
-                string sourceDebug = _debug.ReadDebugFile(TableName!, manga.MangaTitle!, MangaSitePages.MangaPage);
+                string sourceDebug = _debug.ReadDebugFile(TableName, manga.MangaTitle, MangaSitePages.MangaPage);
                 if (string.IsNullOrWhiteSpace(sourceDebug))
                 {
                     _browser.NavigateToUrl(url);
-                    _debug.WriteDebugFile(TableName!, MangaSitePages.MangaPage, manga.MangaTitle!, _browser.GetPageSource());
+                    _debug.WriteDebugFile(TableName, MangaSitePages.MangaPage, manga.MangaTitle, _browser.GetPageSource());
                 }
                 else
                 {
@@ -172,16 +173,22 @@ namespace localscrape.Manga
         {
             GetAllAvailableChapters(manga);
             var chaptersInDb = mangaDb.ChaptersDownloaded;
-            var uniqueChapters = manga.MangaChapters!.Select(e => e.ChapterName).Except(chaptersInDb).ToList();
-            var mangaChaptersToDL = manga.MangaChapters!.Where(e => uniqueChapters.Contains(e.ChapterName) 
+            var uniqueChapters = manga.MangaChapters?.Select(e => e.ChapterName).Except(chaptersInDb).ToList();
+            var mangaChaptersToDL = manga.MangaChapters?.Where(e => uniqueChapters?.Contains(e.ChapterName) ?? false 
                  && !string.IsNullOrEmpty(e.Uri))
-                .DistinctBy(e=>e.Uri).ToList();
+                .DistinctBy(e=>e.Uri ?? string.Empty).ToList();
 
-            foreach (var chapter in mangaChaptersToDL.OrderBy(e=>e.ChapterName, new NaturalSortComparer()))
+            if (mangaChaptersToDL is null || mangaChaptersToDL?.Count == 0)
+                return;
+
+            foreach (var chapter in mangaChaptersToDL!.OrderBy(e=>e.ChapterName, new NaturalSortComparer()))
             {
-                GoToMangaPage(manga, chapter.Uri!);
+                if (string.IsNullOrEmpty(chapter.Uri))
+                    continue;
+                GoToMangaPage(manga, chapter.Uri);
                 var images = GetMangaImages(chapter);
-                if (images.Any()) AddImagesToDownload(images);
+                if (images.Any()) 
+                    AddImagesToDownload(images);
             }
         }
 
@@ -189,18 +196,21 @@ namespace localscrape.Manga
         {
             var mangaInDb = GetAllMangaTitles();
             var mangaNotInDb = FetchedMangaSeries.Where(m => mangaInDb.All(dbManga => dbManga.Title != m.MangaTitle)).ToList();
-            var fetchedMangasInDb = FetchedMangaSeries.Where(m => mangaInDb.Any(dbManga => dbManga.Title == m.MangaTitle)).ToList();
+            var fetchedMangasInDb = FetchedMangaSeries.Where(m => mangaInDb.Any(dbManga => dbManga.Title == m.MangaTitle 
+                || dbManga.Title == m.MangaTitle?.ToLower())).ToList();
 
             foreach (var manga in mangaNotInDb)
             {
                 InsertNewManga(manga);
                 GetAllAvailableChapters(manga);
+                FetchedMangaSeries.Add(manga);
             }
 
             foreach (var manga in fetchedMangasInDb)
             {
                 var mangaDb = mangaInDb.First(e => e.Title == manga.MangaTitle);
-                if (manga.MangaChapters!.First().ChapterName != mangaDb.LatestChapter)
+                if (manga.MangaChapters is null) continue;
+                if (manga.MangaChapters.First().ChapterName != mangaDb.LatestChapter)
                 {
                     ProcessUpdatedChapters(manga, mangaDb);
                 }
@@ -218,7 +228,8 @@ namespace localscrape.Manga
                 if (mangaObject.ChaptersDownloaded.Count < 1)
                     continue;
                 var latestChapterDownloaded = mangaObject.ChaptersDownloaded.Last();
-                var fetchedLatestChapter= manga.MangaChapters!.First().ChapterName;
+                if (manga.MangaChapters is null) continue;
+                var fetchedLatestChapter= manga.MangaChapters.First().ChapterName;
                 if (fetchedLatestChapter == latestChapterDownloaded && mangaObject.LatestChapter != fetchedLatestChapter)
                 {
                     mangaObject.LatestChapter = latestChapterDownloaded;
@@ -267,7 +278,7 @@ namespace localscrape.Manga
             var queueList = new List<DownloadObject>();
             foreach (MangaImages image in mangaImages)
             {
-                queueList.Add(_downloadHelper.CreateDownloadObject(image.FullPath!, image.Uri!, image.ImageFileName, image.Base64String));
+                queueList.Add(_downloadHelper.CreateDownloadObject(image.FullPath, image.Uri, image.ImageFileName, image.Base64String));
             }
             _repo.AddQueueList(queueList);
         }

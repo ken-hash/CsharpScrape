@@ -10,8 +10,8 @@ namespace localscrape.Manga
 {
     public class WeebCentralService : MangaService
     {
-        public override string? HomePage { get => "https://weebcentral.com/"; }
-        public override string? SeriesUrl { get => "https://weebcentral.com/series/"; }
+        public override string HomePage { get => "https://weebcentral.com/"; }
+        public override string SeriesUrl { get => "https://weebcentral.com/series/"; }
 
         private readonly MangaSeries? SingleManga;
         private readonly HashSet<string> BlockedFileNames = new(StringComparer.OrdinalIgnoreCase)
@@ -64,7 +64,8 @@ namespace localscrape.Manga
                 var mangaSeriesLink = SafeGetElement(titleBox,By.CssSelector("a"));
                 if (mangaSeriesLink is null)
                     continue;
-                var seriesLink = mangaSeriesLink.GetAttribute("href");
+                var seriesLink = mangaSeriesLink.GetAttribute("href")??string.Empty;
+                if (string.IsNullOrEmpty(seriesLink)) continue;
                 var mangaTitle = ExtractMangaTitle(seriesLink);
                 if (!allMangasInDb.Any(e => e.Title == mangaTitle))
                     continue;
@@ -105,7 +106,7 @@ namespace localscrape.Manga
                     {
                         MangaTitle = mangaSeries.MangaTitle,
                         ChapterName = chapterName,
-                        Uri = chapter.GetAttribute("href")
+                        Uri = chapter.GetAttribute("href") ?? string.Empty
                     });
                 }
             }
@@ -115,10 +116,10 @@ namespace localscrape.Manga
         {
             var fileHelper = GetFileHelper();
             var images = GetMangaImagesString64(manga);
-            var filteredImages = images.Where(img => fileHelper.IsAnImage(img.ImageFileName!) 
-                && !BlockedFileNames.Contains(img.ImageFileName!) 
-                && !Regex.IsMatch(img.ImageFileName!, "-thumb-small\\.webp")
-                && img.ImageFileName!.Length<20)
+            var filteredImages = images.Where(img => fileHelper.IsAnImage(img.ImageFileName) 
+                && !BlockedFileNames.Contains(img.ImageFileName) 
+                && !Regex.IsMatch(img.ImageFileName, "-thumb-small\\.webp")
+                && img.ImageFileName.Length<20)
                 .ToList();
 
             return filteredImages;
@@ -128,10 +129,9 @@ namespace localscrape.Manga
         {
             var fileHelper = GetFileHelper();
             List<MangaImages> mangaImages = new();
-            Thread.Sleep(2000);
-            List<IWebElement> images = FindByCssSelector("img");
-            var fullPath = Path.Combine(fileHelper.GetMangaDownloadFolder(), manga.MangaTitle!, manga.ChapterName!);
-            mangaImages = ScreenShotWholePage(fullPath, HomePage!);
+            Thread.Sleep(1000);
+            var fullPath = Path.Combine(fileHelper.GetMangaDownloadFolder(), manga.MangaTitle, manga.ChapterName);
+            mangaImages = ScreenShotWholePage(fullPath, HomePage);
             return mangaImages;
         }
 
@@ -146,7 +146,7 @@ namespace localscrape.Manga
                 return string.Empty;
             var chapterText = rawText;
 
-            if (chapterText.Split(' ').Count() == 2)
+            if (chapterText.Split(' ').Length == 2)
             {
                 return chapterText.Split(' ').Last();
             }

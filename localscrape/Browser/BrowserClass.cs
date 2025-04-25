@@ -81,29 +81,41 @@ namespace localscrape.Browser
             }
         }
 
-        private ReadOnlyCollection<IWebElement>? SafeFindElements(By by, IWebElement? webElement=null)
+        private ReadOnlyCollection<IWebElement>? SafeFindElements(By by, IWebElement? webElement = null)
         {
             for (int i = 0; i < _retries; i++)
             {
                 try
                 {
-
+                    ReadOnlyCollection<IWebElement> elems;
                     if (webElement is null)
-                        return _wait.Until(e => _driver.FindElements(by));
-                    return _wait.Until(e => webElement?.FindElements(by));
+                    {
+                        elems = _wait.Until(e => _driver.FindElements(by));
+                    }
+                    else
+                    {
+                        elems = _wait.Until(e => webElement?.FindElements(by));
+                    }
+                    return elems;
                 }
                 catch (StaleElementReferenceException)
                 {
                     Console.WriteLine("Stale element detected, retrying...");
-                    throw;
+                    Thread.Sleep(1000); 
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Exception during element search: {ex.Message}");
+                    break; 
                 }
             }
-            return null;
+            return null; 
         }
+
 
         public IWebElement? SafeGetElement(IWebElement element, By by)
         {
-            return SafeFindElements(by, element)?.First();
+            return SafeFindElements(by, element)?.FirstOrDefault();
         }
 
         public string GetPageSource()
@@ -135,26 +147,30 @@ namespace localscrape.Browser
         public List<Screenshot> ScreenShotWholePage()
         {
             List<Screenshot> screenshots = new();
-            long lastHeight = 0;
-            long newHeight = 1;
+            IJavaScriptExecutor js = (IJavaScriptExecutor)_driver;
+            Thread.Sleep(1500);
+            long totalHeight = Convert.ToInt64(js.ExecuteScript("return document.body.scrollHeight"));
+            long viewportHeight = Convert.ToInt64(js.ExecuteScript("return window.innerHeight"));
+            long currentY = 0;
 
-            while (true)
+            while (currentY + viewportHeight < totalHeight)
             {
-                Screenshot screenshot = ((ITakesScreenshot)_driver).GetScreenshot();
+                screenshots.Add(((ITakesScreenshot)_driver).GetScreenshot());
 
-                ((IJavaScriptExecutor)_driver).ExecuteScript("window.scrollBy(0, window.innerHeight);");
-                Thread.Sleep(2000);
+                js.ExecuteScript($"window.scrollBy(0, {viewportHeight});");
+                Thread.Sleep(1000); 
 
-                lastHeight = newHeight;
-                newHeight = (long)(_driver as IJavaScriptExecutor)!.ExecuteScript("return document.body.scrollHeight");
-
-                screenshots.Add(screenshot);
-                long scrollPosition = (long)((IJavaScriptExecutor)_driver).ExecuteScript("return window.scrollY + window.innerHeight");
-                long totalHeight = (long)((IJavaScriptExecutor)_driver).ExecuteScript("return document.body.scrollHeight");
-
-                if (scrollPosition >= totalHeight)
-                    break;
+                currentY = Convert.ToInt64(js.ExecuteScript("return window.scrollY"));
             }
+
+            long remainingHeight = totalHeight - currentY;
+            if (remainingHeight > 0)
+            {
+                js.ExecuteScript($"window.scrollBy(0, {remainingHeight});");
+                Thread.Sleep(500); 
+                screenshots.Add(((ITakesScreenshot)_driver).GetScreenshot());
+            }
+
             return screenshots;
         }
     }

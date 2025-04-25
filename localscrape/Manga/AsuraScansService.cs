@@ -9,8 +9,8 @@ namespace localscrape.Manga
 {
     public class AsuraScansService : MangaService
     {
-        public override string? HomePage { get => "https://asuracomic.net"; }
-        public override string? SeriesUrl { get => "https://asuracomic.net/series"; }
+        public override string HomePage { get => "https://asuracomic.net/"; }
+        public override string SeriesUrl { get => "https://asuracomic.net/series"; }
         
         private readonly IMangaReaderRepo _readerRepo;
         private readonly MangaSeries? SingleManga;
@@ -60,7 +60,8 @@ namespace localscrape.Manga
                 var mangaSeriesLink = SafeGetElement(titleBox,By.CssSelector("a"));
                 if (mangaSeriesLink is null)
                     continue;
-                var seriesLink = mangaSeriesLink.GetAttribute("href");
+                var seriesLink = mangaSeriesLink.GetAttribute("href")??string.Empty;
+                if (string.IsNullOrEmpty(seriesLink)) continue;
                 var mangaTitle = ExtractMangaTitle(seriesLink);
                 var latestChapterBox = SafeGetElement(titleBox,By.CssSelector("div.flex.flex-row.justify-between.rounded-sm"));
                 var lastChapterAdded = ExtractChapterName(latestChapterBox?.Text.Trim());
@@ -93,7 +94,7 @@ namespace localscrape.Manga
                     {
                         MangaTitle = mangaSeries.MangaTitle,
                         ChapterName = chapterName,
-                        Uri = chapter.GetAttribute("href")
+                        Uri = chapter.GetAttribute("href") ?? string.Empty
                     });
                 }
             }
@@ -105,14 +106,15 @@ namespace localscrape.Manga
             var images = FindByElements(By.XPath("//img[@alt and normalize-space(@alt) != '']"))
                 .Select(image => new MangaImages
                 {
-                    ImageFileName = image.GetAttribute("src").Split('/').Last(),
-                    FullPath = Path.Combine(fileHelper.GetMangaDownloadFolder(), manga.MangaTitle!, manga.ChapterName!, image.GetAttribute("src").Split('/').Last()),
-                    Uri = image.GetAttribute("src")
+                    ImageFileName = (image.GetAttribute("src")??string.Empty).Split('/').Last(),
+                    FullPath = Path.Combine(fileHelper.GetMangaDownloadFolder(), manga.MangaTitle, manga.ChapterName, 
+                    (image.GetAttribute("src")??string.Empty).Split('/').Last()),
+                    Uri = image.GetAttribute("src") ?? string.Empty
                 })
-                .Where(img => fileHelper.IsAnImage(img.ImageFileName!) 
-                    && !BlockedFileNames.Contains(img.ImageFileName!) 
-                    && !Regex.IsMatch(img.ImageFileName!, "(http|small)")
-                    && img.ImageFileName!.Length<25)
+                .Where(img => fileHelper.IsAnImage(img.ImageFileName) 
+                    && !BlockedFileNames.Contains(img.ImageFileName) 
+                    && !Regex.IsMatch(img.ImageFileName, "(http|small)")
+                    && (img.ImageFileName.Length<100||img.ImageFileName.Contains("optimized")))
                 .ToList();
             if (images.Count > 5)
             {
