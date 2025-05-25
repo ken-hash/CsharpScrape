@@ -1,9 +1,12 @@
 ﻿using localscrape.Models;
+using Microsoft.Extensions.Logging;
 using OpenQA.Selenium;
 using OpenQA.Selenium.Chrome;
 using OpenQA.Selenium.Edge;
 using OpenQA.Selenium.Support.UI;
 using System.Collections.ObjectModel;
+using WebDriverManager;
+using WebDriverManager.DriverConfigs.Impl;
 
 namespace localscrape.Browser
 {
@@ -24,24 +27,33 @@ namespace localscrape.Browser
     public class BrowserService : IBrowser
     {
         private readonly IWebDriver _driver;
+        private readonly ILogger _logger;
+
         public string PageSource { get => _driver.PageSource; }
         private const int _retries = 3;
         private WebDriverWait _wait;
 
-        public BrowserService(BrowserType browserType)
+        public BrowserService(BrowserType browserType, ILogger logger)
         {
+            _logger = logger;
             _driver = StartBrowser(browserType);
             _driver.Manage().Timeouts().PageLoad = TimeSpan.FromSeconds(5);
             _wait = new WebDriverWait(_driver, TimeSpan.FromSeconds(5));
+
+            _logger.LogInformation("BrowserService initialized with browser: {BrowserType}", browserType);
         }
+
 
         private IWebDriver StartBrowser(BrowserType browserType)
         {
+
             switch (browserType)
             {
                 case BrowserType.Chrome:
+                    new DriverManager().SetUpDriver(new ChromeConfig());
                     return new ChromeDriver();
                 case BrowserType.Edge:
+                    new DriverManager().SetUpDriver(new EdgeConfig());
                     return new EdgeDriver();
                 default:
                     throw new ArgumentException("Unsupported browser type");
@@ -50,16 +62,19 @@ namespace localscrape.Browser
 
         public void NavigateToUrl(string Url)
         {
+            _logger.LogInformation("Navigating to URL: {Url}", Url);
             try
             {
                 _driver.Navigate().GoToUrl(Url);
             }
-            catch (WebDriverTimeoutException)
+            catch (WebDriverTimeoutException ex)
             {
+                _logger.LogWarning(ex, "Page load timeout. Attempting to stop loading.");
                 IJavaScriptExecutor js = (IJavaScriptExecutor)_driver;
                 js.ExecuteScript("window.stop();");
             }
         }
+
 
         public void CloseDriver()
         {
@@ -100,14 +115,15 @@ namespace localscrape.Browser
                 }
                 catch (StaleElementReferenceException)
                 {
-                    Console.WriteLine("Stale element detected, retrying...");
-                    Thread.Sleep(1000); 
+                    _logger.LogWarning($"Stale element detected. Retrying ({i + 1}/{_retries})...");
+                    Thread.Sleep(1000);
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"Exception during element search: {ex.Message}");
-                    break; 
+                    _logger.LogError(ex, "Exception during element search.");
+                    break;
                 }
+
             }
             return null; 
         }
@@ -146,6 +162,7 @@ namespace localscrape.Browser
 
         public List<Screenshot> ScreenShotWholePage()
         {
+            _logger.LogInformation($"Starting Screenshot function");
             List<Screenshot> screenshots = new();
             IJavaScriptExecutor js = (IJavaScriptExecutor)_driver;
             Thread.Sleep(1500);
@@ -170,7 +187,7 @@ namespace localscrape.Browser
                 Thread.Sleep(500); 
                 screenshots.Add(((ITakesScreenshot)_driver).GetScreenshot());
             }
-
+            _logger.LogInformation($"Reached end of page");
             return screenshots;
         }
     }

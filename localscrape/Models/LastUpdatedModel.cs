@@ -7,5 +7,9 @@
         public string? Url { get; set; }
         public DateTime UpdateDate { get; set; }
         public required string? User { get; set; }
+        public override string ToString()
+        {
+            return $"Site : {Site} Url : {Url} UpdateDate : {UpdateDate} User : {User}";
+        }
     }
 }

@@ -1,3 +1,5 @@
+using Microsoft.Extensions.Logging;
+
 namespace localscrape.Helpers
 {
     public interface IFileHelper
@@ -11,32 +13,43 @@ namespace localscrape.Helpers
 
     public class FileHelper : IFileHelper
     {
-        HashSet<string> allowedExtensions = new(StringComparer.OrdinalIgnoreCase)
+        private readonly ILogger _logger;
+
+        private readonly HashSet<string> allowedExtensions = new(StringComparer.OrdinalIgnoreCase)
         {
             ".jpg", ".jpeg", ".png", ".gif", ".bmp", ".webp"
         };
 
+        public FileHelper(ILogger logger)
+        {
+            _logger = logger;
+        }
+
         public string GetMangaDownloadFolder()
         {
             PlatformID OS = GetOS();
-            switch (OS)
+            string path = OS switch
             {
-                case PlatformID.Unix:
-                    return Path.Join("/", "mnt", "MangaPi", "downloads");
-                default:
-                    return Path.Join("\\\\192.168.50.11", "Public-Manga", "downloads");
-            }
+                PlatformID.Unix => Path.Join("/", "mnt", "MangaPi", "downloads"),
+                _ => Path.Join("\\\\192.168.50.11", "Public-Manga", "downloads"),
+            };
+            _logger.LogInformation($"Resolved download folder: {path}");
+            return path;
         }
 
         public bool IsAnImage(string fileName)
         {
             string extension = Path.GetExtension(fileName);
-            return allowedExtensions.Contains(extension);
+            bool result = allowedExtensions.Contains(extension);
+            _logger.LogDebug($"Checked image file: {fileName}, Result: {result}");
+            return result;
         }
 
         public PlatformID GetOS()
         {
-            return Environment.OSVersion.Platform;
+            var os = Environment.OSVersion.Platform;
+            _logger.LogInformation($"Detected OS: {os}");
+            return os;
         }
 
         public void WriteFile(string lines, string path)
@@ -47,12 +60,16 @@ namespace localscrape.Helpers
                 if (!Directory.Exists(directory))
                 {
                     Directory.CreateDirectory(directory);
+                    _logger.LogInformation($"Created directory: {directory}");
                 }
+
                 File.WriteAllText(path, lines);
+                _logger.LogInformation($"Successfully wrote to file: {path}");
             }
             catch (Exception ex)
             {
-                throw new Exception($"{ex.Message}");
+                _logger.LogError(ex, $"Error writing to file: {path}");
+                throw new Exception($"Failed to write to file: {ex.Message}");
             }
         }
 
@@ -62,16 +79,18 @@ namespace localscrape.Helpers
             {
                 if (!File.Exists(path))
                 {
+                    _logger.LogWarning($"File does not exist: {path}");
                     return string.Empty;
                 }
-                using (StreamReader reader = new(path))
-                {
-                    return reader.ReadToEnd();
-                }
+
+                string content = File.ReadAllText(path);
+                _logger.LogInformation($"Successfully read file: {path}");
+                return content;
             }
             catch (Exception ex)
             {
-                throw new Exception($"{ex.Message}");
+                _logger.LogError(ex, $"Error reading file: {path}");
+                throw new Exception($"Failed to read file: {ex.Message}");
             }
         }
     }
