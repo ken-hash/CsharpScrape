@@ -3,8 +3,11 @@ using localscrape.Debug;
 using localscrape.Helpers;
 using localscrape.Models;
 using localscrape.Repo;
+using Microsoft.Extensions.Logging;
 using OpenQA.Selenium;
 using OpenQA.Selenium.Support.UI;
+using System.Drawing;
+using System.Drawing.Imaging;
 using System.Text.RegularExpressions;
 
 namespace localscrape.Manga
@@ -19,13 +22,14 @@ namespace localscrape.Manga
         public List<MangaSeries> FetchedMangaSeries { get; } = new();
 
         private List<MangaObject> _allMangaObjects { get; set; }
-        private readonly IDownloadHelper _downloadHelper;
         private readonly IFileHelper _fileHelper;
         private readonly IMangaRepo _repo;
         private readonly IDebugService _debug;
         private readonly IBrowser _browser;
+        private readonly RabbitRepo _rabbitRepo;
+        private readonly ILogger _logger;
 
-        public MangaService(IMangaRepo repo, IBrowser browser, IDebugService debug)
+        public MangaService(IMangaRepo repo, IBrowser browser, IDebugService debug, ILogger logger)
         {
             _repo = repo;
             _browser = browser;
@@ -33,8 +37,10 @@ namespace localscrape.Manga
             _fileHelper = debug.GetFileHelper();
             _allMangaObjects = GetAllMangas();
             TableName = repo.GetTableName();
-            _downloadHelper = new DownloadHelper();
+            _rabbitRepo = new RabbitRepo(logger);
+            _logger = logger;
         }
+
 
         public abstract List<MangaSeries> GetMangaLinks();
 
@@ -62,9 +68,11 @@ namespace localscrape.Manga
         /// <returns></returns>
         public virtual List<MangaImages> GetMangaImages(MangaChapter manga)
         {
+
             List<MangaImages> mangaImages = new();
             Thread.Sleep(2000);
             List<IWebElement> images = FindByCssSelector("img");
+
             foreach (IWebElement image in images)
             {
                 string url = image.GetAttribute("src")??string.Empty;
@@ -76,12 +84,13 @@ namespace localscrape.Manga
                     mangaImages.Add(new MangaImages { ImageFileName = fileName, FullPath = fullPath, Uri = url });
                 }
             }
+            _logger.LogInformation($"Found {mangaImages.Count} image(s) for chapter '{manga.ChapterName}' of '{manga.MangaTitle}'");
             return mangaImages;
         }
 
         public virtual void RunProcess()
         {
-            Console.WriteLine($"Executing {this.GetType().Name} with RunAllTitles :{RunAllTitles}");
+            _logger.LogInformation($"Executing {GetType().Name} with RunAllTitles: {RunAllTitles}");
             //override this
             //usually checks home page for latest updated manga that includes chapter links
             //checks if manga chapters is in db 
@@ -104,6 +113,7 @@ namespace localscrape.Manga
                 string sourceDebug = _debug.ReadDebugFile(TableName, "Home", MangaSitePages.HomePage);
                 if (string.IsNullOrWhiteSpace(sourceDebug))
                 {
+                    _logger.LogInformation($"Navigating to homepage: {HomePage}");
                     _browser.NavigateToUrl(HomePage);
                     _debug.WriteDebugFile(TableName, MangaSitePages.HomePage, "Home", _browser.GetPageSource());
                 }
@@ -178,8 +188,13 @@ namespace localscrape.Manga
                  && !string.IsNullOrEmpty(e.Uri))
                 .DistinctBy(e=>e.Uri ?? string.Empty).ToList();
 
-            if (mangaChaptersToDL is null || mangaChaptersToDL?.Count == 0)
+            _logger.LogInformation($"Processing updated chapters for: {manga.MangaTitle}");
+
+            if (mangaChaptersToDL is null || mangaChaptersToDL.Count == 0)
+            {
+                _logger.LogInformation($"No new chapters found for: {manga.MangaTitle}");
                 return;
+            }
 
             foreach (var chapter in mangaChaptersToDL!.OrderBy(e=>e.ChapterName, new NaturalSortComparer()))
             {
@@ -273,14 +288,19 @@ namespace localscrape.Manga
         /// Convert MangaImages and insert it into the download queue
         /// </summary>
         /// <param name="mangaImages"></param>
-        public void AddImagesToDownload(List<MangaImages> mangaImages)
+        public async void AddImagesToDownload(List<MangaImages> mangaImages)
         {
-            var queueList = new List<DownloadObject>();
-            foreach (MangaImages image in mangaImages)
-            {
-                queueList.Add(_downloadHelper.CreateDownloadObject(image.FullPath, image.Uri, image.ImageFileName, image.Base64String));
-            }
-            _repo.AddQueueList(queueList);
+
+            string chapter = Directory.GetParent(mangaImages.First().FullPath)!.Name;
+            string title = Directory.GetParent(mangaImages.First().FullPath)!.Parent!.Name;
+            var downloadObj = new DownloadObject {
+                Title = title,
+                ChapterNum = chapter,
+                MangaImages = mangaImages
+            };
+            _logger.LogInformation($"Sending {mangaImages.Count} image(s) to download queue for: {title} - Chapter: {chapter}");
+
+            await _rabbitRepo.Send(downloadObj);
         }
 
         /// <summary>
@@ -289,6 +309,8 @@ namespace localscrape.Manga
         /// <param name="manga"></param>
         public void InsertNewManga(MangaSeries manga)
         {
+            _logger.LogInformation($"Inserting new manga: {manga.MangaTitle}");
+
             if (string.IsNullOrEmpty(manga.MangaTitle))
                 throw new Exception($"\'{manga.MangaTitle}\' is invalid.");
             if (!_repo.DoesExist(manga.MangaTitle))
@@ -331,7 +353,24 @@ namespace localscrape.Manga
             {
                 string fileName = $"{i}.png";
                 string fullFilePath = Path.Combine(fullPath, fileName);
-                var string64 = screenshots[i].AsBase64EncodedString;
+                byte[] raw = screenshots[i].AsByteArray;
+                long quality = 80L;
+
+                using var srcStream = new MemoryStream(raw);
+                using var img = Image.FromStream(srcStream);
+
+                using var outStream = new MemoryStream();
+                var jpegCodec = ImageCodecInfo.GetImageEncoders()
+                                   .First(codec => codec.FormatID == System.Drawing.Imaging.ImageFormat.Jpeg.Guid);
+                var encoderParams = new EncoderParameters(1);
+                encoderParams.Param[0] = new EncoderParameter(
+                    Encoder.Quality,
+                    Math.Clamp(quality, 1L, 100L)
+                );
+
+                img.Save(outStream, jpegCodec, encoderParams);
+
+                var string64 = Convert.ToBase64String(outStream.ToArray());
                 mangaImages.Add(new MangaImages { ImageFileName = fileName, FullPath = fullFilePath, Base64String = string64 , Uri = domain});
             }
             return mangaImages;

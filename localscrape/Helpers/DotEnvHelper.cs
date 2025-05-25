@@ -1,26 +1,56 @@
 using dotenv.net;
+using Microsoft.Extensions.Logging;
+
 namespace localscrape.Helpers
 {
     public interface IDotEnvHelper
     {
-        string GetEnvValue(string Key);
+        string GetEnvValue(string key);
     }
 
     public class DotEnvHelper : IDotEnvHelper
     {
-        public DotEnvHelper(DotEnvOptions options)
+        private readonly ILogger _logger;
+
+        public DotEnvHelper(DotEnvOptions options, ILogger logger)
         {
-            DotEnv.Load(options);
+            _logger = logger;
+            try
+            {
+                DotEnv.Load(options);
+                _logger.LogInformation("DotEnv loaded with custom options.");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error loading DotEnv with custom options.");
+            }
         }
 
-        public DotEnvHelper()
+        public DotEnvHelper(ILogger logger)
         {
-            DotEnv.Load();
+            _logger = logger;
+            try
+            {
+                DotEnv.Load();
+                _logger.LogInformation("DotEnv loaded with default options.");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error loading DotEnv with default options.");
+            }
         }
 
-        public string GetEnvValue(string Key)
+        public string GetEnvValue(string key)
         {
-            return Environment.GetEnvironmentVariable(Key) ?? string.Empty;
+            var value = Environment.GetEnvironmentVariable(key);
+            if (string.IsNullOrEmpty(value))
+            {
+                _logger.LogWarning($"Environment variable '{key}' not found.");
+                return string.Empty;
+            }
+
+            _logger.LogInformation($"Environment variable '{key}' retrieved.");
+            return value;
         }
     }
 }

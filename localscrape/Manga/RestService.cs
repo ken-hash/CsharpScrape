@@ -1,4 +1,5 @@
-﻿using System.Net.Http.Json;
+﻿using Microsoft.Extensions.Logging;
+using System.Net.Http.Json;
 
 namespace localscrape.Manga
 {
@@ -13,15 +14,18 @@ namespace localscrape.Manga
     {
         private readonly string? _baseUrl;
         private readonly HttpClient _httpClient;
+        private readonly ILogger _logger;
 
-        public RestService()
+        public RestService(ILogger logger)
         {
             _httpClient = new HttpClient();
+            _logger = logger;
         }
 
-        public RestService(string baseUrl)
+        public RestService(string baseUrl, ILogger logger)
         {
             _baseUrl = baseUrl;
+            _logger = logger;
             _httpClient = new HttpClient();
             _httpClient.BaseAddress = new Uri(_baseUrl);
         }
@@ -29,6 +33,7 @@ namespace localscrape.Manga
         public async Task<T?> GetAsync<T>(string url, object data)
         {
             var endpoint = new Uri(_baseUrl + url);
+            _logger.LogInformation($"Sending GET request to {url}");
             var response = await _httpClient.GetAsync(endpoint).ConfigureAwait(false);
             response.EnsureSuccessStatusCode();
             return await response.Content.ReadFromJsonAsync<T>().ConfigureAwait(false);
@@ -37,6 +42,7 @@ namespace localscrape.Manga
         public async Task<T?> PostAsync<T>(string url, object data)
         {
             var endpoint = new Uri(_baseUrl + url);
+            _logger.LogInformation($"Sending POST request to {url} with {data}");
             var response = await _httpClient.PostAsJsonAsync(endpoint, data).ConfigureAwait(false);
             response.EnsureSuccessStatusCode();
             if (typeof(T) == typeof(string))
@@ -49,6 +55,7 @@ namespace localscrape.Manga
 
         public async Task<T?> PatchAsync<T>(string url, object data)
         {
+            _logger.LogInformation($"Sending PATCH request to {url} with {data}");
             var endpoint = new Uri(_baseUrl + url);
             var request = new HttpRequestMessage(HttpMethod.Patch, endpoint)
             {

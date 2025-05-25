@@ -1,5 +1,6 @@
 ﻿using localscrape.Manga;
 using localscrape.Models;
+using Microsoft.Extensions.Logging;
 
 namespace localscrape.Repo
 {
@@ -11,18 +12,22 @@ namespace localscrape.Repo
     public class MangaReaderRepo : IMangaReaderRepo
     {
         private readonly IRestService _restService;
-        public MangaReaderRepo()
+        private readonly ILogger _logger;
+        public MangaReaderRepo(ILogger logger)
         {
-            _restService = new RestService();
+            _logger = logger;
+            _restService = new RestService(logger);
         }
 
-        public MangaReaderRepo(IRestService restService)
+        public MangaReaderRepo(IRestService restService, ILogger logger)
         {
+            _logger = logger;
             _restService = restService;
         }
 
         public async Task<string?> UpdateLatestUpdate(string mangaSite, string mangaSiteUrl)
         {
+            _logger.LogInformation($"Updating {mangaSite} {Environment.MachineName}");
             var update = new LastUpdatedModel 
             {
                 User = Environment.MachineName,

@@ -4,8 +4,11 @@ namespace localscrape.Models
     {
         public required string Title { get; set; }
         public required string ChapterNum { get; set; }
-        public required string FileId { get; set; }
-        public required string Url { get; set; }
-        public string? String64 { get; set; }
+        public required List<MangaImages> MangaImages { get; set; }
+
+        public override string ToString()
+        {
+            return $"DonwloadObject = {{Ttile:{Title} ChapterNum:{ChapterNum} ImagesCount: {MangaImages.Count}}}";
+        }
     }
 }
