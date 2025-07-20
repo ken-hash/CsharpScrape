@@ -112,11 +112,13 @@ namespace localscrape.Manga
             _logger.LogInformation($"Getting chapters for: {mangaSeries.MangaTitle}");
             GoToSeriesPage(mangaSeries);
             var showAllChapters = FindByElements(By.CssSelector("button.hover\\:bg-base-300.p-2"));
-            showAllChapters.First().Click();
+            if (showAllChapters.Count>1)
+                showAllChapters.First().Click();
             Thread.Sleep(3000);
 
             var chapterBoxes = FindByElements(By.XPath("//a[contains(@href, '/chapters/')]")).ToList();
 
+            _logger.LogInformation($"Found {chapterBoxes.Count} chapters for {mangaSeries.MangaTitle}");
             foreach (var chapter in chapterBoxes)
             {
                 var chapterTextElem = SafeGetElement(chapter, By.CssSelector("span.grow.flex.items-center.gap-2 > span:first-child"));
@@ -124,6 +126,7 @@ namespace localscrape.Manga
                     continue;
 
                 var chapterName = ExtractChapterName(chapterTextElem.Text.Trim());
+                var uri = chapter.GetAttribute("href") ?? string.Empty;
                 if (!string.IsNullOrEmpty(chapterName))
                 {
                     mangaSeries.MangaChapters ??= new List<MangaChapter>();
@@ -131,10 +134,10 @@ namespace localscrape.Manga
                     {
                         MangaTitle = mangaSeries.MangaTitle,
                         ChapterName = chapterName,
-                        Uri = chapter.GetAttribute("href") ?? string.Empty
+                        Uri = uri
                     });
 
-                    _logger.LogDebug($"Added chapter {chapterName} for {mangaSeries.MangaTitle}");
+                    _logger.LogDebug($"Found chapter {chapterName} for {mangaSeries.MangaTitle}, Link: {uri}");
                 }
             }
         }

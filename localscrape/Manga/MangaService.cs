@@ -196,6 +196,7 @@ namespace localscrape.Manga
                 return;
             }
 
+            _logger.LogInformation($"Fetching {mangaChaptersToDL?.Count} chapters of {manga.MangaTitle}");
             foreach (var chapter in mangaChaptersToDL!.OrderBy(e=>e.ChapterName, new NaturalSortComparer()))
             {
                 if (string.IsNullOrEmpty(chapter.Uri))
