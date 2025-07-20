@@ -94,7 +94,7 @@ namespace localscrape.Manga
 
                 var lastChapterAdded = ExtractChapterName(latestChapterTexts[x * 2]);
 
-                _logger.LogDebug($"Found: {mangaTitle}, Last Chapter: {lastChapterAdded}");
+                _logger.LogDebug($"Found: {mangaTitle}, Latest Chapter: {lastChapterAdded}");
 
                 FetchedMangaSeries.Add(new MangaSeries
                 {
@@ -119,6 +119,7 @@ namespace localscrape.Manga
             var cleanedFilter = mangaSeries.MangaSeriesUri.Replace(HomePage, "");
 
             var chapterBoxes = FindByElements(By.XPath("//p[contains(@class, 'mantine-Text-root') and @data-size='md' and @data-line-clamp='true']"))
+                .Where(e=> !string.IsNullOrEmpty(e.Text))
                 .Select(e => e.Text.Trim()).ToList();
 
             var chapterLinks = FindByElements(By.XPath($"//a[starts-with(@href, '{cleanedFilter}') and not(contains(substring(@href, string-length(@href) - 3), '.'))]"))
@@ -139,7 +140,7 @@ namespace localscrape.Manga
                         Uri = link
                     });
 
-                    _logger.LogDebug($"Found chapter: {chapterName}, Link: {link}");
+                    _logger.LogDebug($"Found chapter: {chapterName} for {mangaSeries.MangaTitle}, Link: {link}");
                 }
             }
 
@@ -151,18 +152,26 @@ namespace localscrape.Manga
             _logger.LogInformation($"Getting images for {manga.MangaTitle} - {manga.ChapterName}");
 
             var fileHelper = GetFileHelper();
-            var images = FindByElements(By.XPath("//img[@alt and normalize-space(@alt) != '']"))
-                .Select(image =>
-                new MangaImages
+            var images = FindByElements(By.XPath("//img[@alt and normalize-space(@alt) != '']"));
+            var validImages = new List<MangaImages>();
+            foreach(var image in images)
+            {
+                var img = new MangaImages
                 {
-                    ImageFileName = Uri.UnescapeDataString(image.GetAttribute("src") ?? string.Empty.Split('/').Last().Split('?').First()),
-                    FullPath = Path.Combine(fileHelper.GetMangaDownloadFolder(), manga.MangaTitle, manga.ChapterName, Uri.UnescapeDataString(image.GetAttribute("src") ?? string.Empty.Split('/').Last())),
+                    ImageFileName = Uri.UnescapeDataString(image.GetAttribute("src") ?? string.Empty).Split('/').Last().Split('?').First(),
+                    FullPath = Path.Combine(fileHelper.GetMangaDownloadFolder(false), 
+                        manga.MangaTitle, 
+                        manga.ChapterName, 
+                        Uri.UnescapeDataString(image.GetAttribute("src") ?? string.Empty).Split('/').Last()).Split('?').First(),
                     Uri = image.GetAttribute("src") ?? string.Empty
-                })
-                .Where(img => fileHelper.IsAnImage(img.ImageFileName) && !BlockedFileNames.Contains(img.ImageFileName) && !Regex.IsMatch(img.ImageFileName!, "-thumb-small\\.webp"))
-                .ToList();
+                };
+                if (fileHelper.IsAnImage(img.ImageFileName) && !BlockedFileNames.Contains(img.ImageFileName)
+                && !Regex.IsMatch(img.ImageFileName!, "-thumb-small\\.webp") && Regex.IsMatch(img.Uri, "cdn"))
+                    validImages.Add(img);
+            }
 
-            return images;
+            _logger.LogInformation($"Found {validImages.Count} images for {manga.MangaTitle} - {manga.ChapterName}");
+            return validImages;
         }
     }
 }

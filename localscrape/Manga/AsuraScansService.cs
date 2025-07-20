@@ -108,7 +108,7 @@ namespace localscrape.Manga
                 var uri = chapter.GetAttribute("href") ?? string.Empty;
                 if (!uri.Contains(mangaSeries.MangaTitle)) 
                     continue;
-                _logger.LogDebug($"Found chapter: {chapterName}");
+                _logger.LogDebug($"Found chapter: {chapterName} for {mangaSeries.MangaTitle}, Link: {uri}");
                 if (!string.IsNullOrEmpty(chapterName))
                 {
                     mangaSeries.MangaChapters ??= new List<MangaChapter>();
@@ -130,7 +130,7 @@ namespace localscrape.Manga
                 .Select(image => new MangaImages
                 {
                     ImageFileName = (image.GetAttribute("src")??string.Empty).Split('/').Last(),
-                    FullPath = Path.Combine(fileHelper.GetMangaDownloadFolder(), manga.MangaTitle, manga.ChapterName, 
+                    FullPath = Path.Combine(fileHelper.GetMangaDownloadFolder(false), manga.MangaTitle, manga.ChapterName, 
                     (image.GetAttribute("src")??string.Empty).Split('/').Last()),
                     Uri = image.GetAttribute("src") ?? string.Empty
                 })

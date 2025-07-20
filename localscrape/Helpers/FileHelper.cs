@@ -4,9 +4,9 @@ namespace localscrape.Helpers
 {
     public interface IFileHelper
     {
-        string GetMangaDownloadFolder();
+        string GetMangaDownloadFolder(bool debug=true);
         bool IsAnImage(string fileName);
-        PlatformID GetOS();
+        PlatformID GetOS(bool debug=true);
         void WriteFile(string lines, string path);
         string ReadFile(string path);
     }
@@ -25,15 +25,16 @@ namespace localscrape.Helpers
             _logger = logger;
         }
 
-        public string GetMangaDownloadFolder()
+        public string GetMangaDownloadFolder(bool debug = true)
         {
-            PlatformID OS = GetOS();
+            PlatformID OS = GetOS(false);
             string path = OS switch
             {
                 PlatformID.Unix => Path.Join("/", "mnt", "MangaPi", "downloads"),
                 _ => Path.Join("\\\\192.168.50.11", "Public-Manga", "downloads"),
             };
-            _logger.LogInformation($"Resolved download folder: {path}");
+            if (debug)
+                _logger.LogInformation($"Resolved download folder: {path}");
             return path;
         }
 
@@ -41,14 +42,15 @@ namespace localscrape.Helpers
         {
             string extension = Path.GetExtension(fileName);
             bool result = allowedExtensions.Contains(extension);
-            _logger.LogDebug($"Checked image file: {fileName}, Result: {result}");
+            _logger.LogDebug($"Checked image file: {fileName}, IsImage: {result}");
             return result;
         }
 
-        public PlatformID GetOS()
+        public PlatformID GetOS(bool debug=true)
         {
             var os = Environment.OSVersion.Platform;
-            _logger.LogInformation($"Detected OS: {os}");
+            if (debug)
+                _logger.LogInformation($"Detected OS: {os}");
             return os;
         }
 

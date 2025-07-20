@@ -22,14 +22,14 @@ var isSingle = false;
 var isSingle = false;
 #endif
 MangaSeries? mangaSeriesOne = null;
- //isSingle = true;
+//isSingle = true;
 if (isSingle)
 {
     mangaSeriesOne = new MangaSeries
     {
-        MangaTitle = "magic-academys-genius-blinker",
+        MangaTitle = "why-i-quit-being-the-demon-king",
         MangaChapters = new List<MangaChapter>(),
-        MangaSeriesUri = "https://asuracomic.net/series/magic-academys-genius-blinker-04464a29"
+        MangaSeriesUri = "https://weebcentral.com/series/01JJCBS4QMEAJA05GBS5NPACXS/why-i-quit-being-the-demon-king"
     };
 }
 
@@ -37,13 +37,15 @@ MangaRepo asuraRepo = new("AsuraScans", logger);
 chromeBrowser.SetTimeout(15);
 RestService restService = new("http://192.168.50.11", logger);
 MangaReaderRepo readerRepo = new(restService, logger);
-AsuraScansService asuraScans = new(asuraRepo, chromeBrowser, debug, readerRepo, logger, mangaSeriesOne);
+//AsuraScansService asuraScans = new(asuraRepo, chromeBrowser, debug, readerRepo, logger, mangaSeriesOne);
+AsuraScansService asuraScans = new(asuraRepo, chromeBrowser, debug, readerRepo, logger);
 asuraScans.RunDebug = false;
 asuraScans.RunProcess();
 
 MangaRepo weebCentralRepo = new("WeebCentral", logger);
 edgeBrowser.SetTimeout(15);
-WeebCentralService weebCentralService = new(weebCentralRepo, edgeBrowser, debug, logger);
+//WeebCentralService weebCentralService = new(weebCentralRepo, edgeBrowser, debug, logger);
+WeebCentralService weebCentralService = new(weebCentralRepo, edgeBrowser, debug, logger, mangaSeriesOne);
 weebCentralService.RunDebug = false;
 weebCentralService.RunProcess();
 

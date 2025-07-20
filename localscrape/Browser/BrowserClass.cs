@@ -73,6 +73,10 @@ namespace localscrape.Browser
                 IJavaScriptExecutor js = (IJavaScriptExecutor)_driver;
                 js.ExecuteScript("window.stop();");
             }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Browser Navigation Error.");
+            }
         }
 
 
@@ -169,6 +173,7 @@ namespace localscrape.Browser
             long totalHeight = Convert.ToInt64(js.ExecuteScript("return document.body.scrollHeight"));
             long viewportHeight = Convert.ToInt64(js.ExecuteScript("return window.innerHeight"));
             long currentY = 0;
+            long lastY = 0;
 
             while (currentY + viewportHeight < totalHeight)
             {
@@ -177,7 +182,15 @@ namespace localscrape.Browser
                 js.ExecuteScript($"window.scrollBy(0, {viewportHeight});");
                 Thread.Sleep(1000); 
 
+                
                 currentY = Convert.ToInt64(js.ExecuteScript("return window.scrollY"));
+                if (lastY != currentY)
+                    lastY = currentY;
+                else
+                {
+                    _logger.LogDebug($"Scrolled to the end of page");
+                    break;
+                }
             }
 
             long remainingHeight = totalHeight - currentY;
@@ -187,8 +200,10 @@ namespace localscrape.Browser
                 Thread.Sleep(500); 
                 screenshots.Add(((ITakesScreenshot)_driver).GetScreenshot());
             }
-            _logger.LogInformation($"Reached end of page");
+
+            _logger.LogInformation($"{screenshots.Count} were screenshotted");
             return screenshots;
         }
+
     }
 }
