@@ -70,21 +70,59 @@ namespace localscrape.Manga
             _logger.LogInformation("Scraping manga links from series page...");
 
             var allMangasInDb = GetAllMangaTitles();
-            var mangaTitleTexts = FindByElements(By.XPath("//a[contains(@class, 'mantine-Text-root')]"))
-                .Where(e => !e.Text.Contains("Chapter"))
-                .Select(e => e.Text.Trim()).ToList();
+            var seriesCardElements = FindByElements(By.CssSelector("div.m_6d731127.mantine-Stack-root"));
 
-            var latestChapterTexts = FindByElements(By.XPath("//div[contains(@class, 'SeriesCard_chapterPillWrapper__0yOPE')]"))
-                .Select(e => e.Text.Trim()).ToList();
+            var mangaData = new Dictionary<string, (string SeriesLink, List<(string Chapter, string ChapterLink)>)>();
 
-            var mangaSeriesLinks = FindByElements(By.XPath("//a[contains(@class, 'SeriesCard_chapterImageLink__cDtXf')]"))
-                .Select(e => (e.GetAttribute("href") ?? string.Empty).Replace(HomePage, "")).ToList();
-
-            for (int x = 0; x < mangaSeriesLinks.Count; x++)
+            foreach (var card in seriesCardElements)
             {
-                var linkText = mangaSeriesLinks[x];
-                var seriesLink = $"{HomePage}{linkText}";
-                var mangaTitle = mangaTitleTexts[x];
+                try
+                {
+                    var stackRoots = card.FindElements(By.CssSelector(".m_6d731127.mantine-Stack-root")).ToList();
+
+                    if (stackRoots.Count < 2)
+                        continue;
+
+                    var titleSection = stackRoots[0];
+                    var chapterSection = stackRoots[1];
+
+                    var titleAnchor = titleSection.FindElement(By.CssSelector("a[href^='/series/']"));
+                    var title = titleAnchor.Text.Trim();
+                    var seriesLink = titleAnchor.GetAttribute("href") ?? "";
+
+                    var chapterAnchors = chapterSection.FindElements(By.CssSelector("a[href^='/series/']")).ToList();
+
+                    var chapterRegex = new Regex(@"/series/\d+/\w+$");
+                    var chapters = new List<(string Chapter, string ChapterLink)>();
+
+                    foreach (var anchor in chapterAnchors)
+                    {
+                        var href = anchor.GetAttribute("href") ?? "";
+                        if (!chapterRegex.IsMatch(href)) continue;
+
+                        var chapterText = anchor.Text.Trim();
+                        chapters.Add((chapterText, href));
+                    }
+
+                    if (!string.IsNullOrEmpty(title) && !string.IsNullOrEmpty(seriesLink))
+                    {
+                        mangaData[title] = (seriesLink, chapters);
+                    }
+                }
+                catch (NoSuchElementException)
+                {
+                    continue;
+                }
+            }
+
+
+            var keyList = mangaData.Keys.ToList();
+
+            for (int x = 0; x < keyList.Count; x++)
+            {
+                var linkText = mangaData[keyList[x]].SeriesLink;
+                var seriesLink = linkText;
+                var mangaTitle = keyList[x];
 
                 if (!allMangasInDb.Any(e => e.Title == mangaTitle))
                 {
@@ -92,7 +130,7 @@ namespace localscrape.Manga
                     continue;
                 }
 
-                var lastChapterAdded = ExtractChapterName(latestChapterTexts[x * 2]);
+                var lastChapterAdded = ExtractChapterName(mangaData[keyList[x]].Item2.First().Chapter);
 
                 _logger.LogDebug($"Found: {mangaTitle}, Latest Chapter: {lastChapterAdded}");
 

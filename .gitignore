@@ -3,3 +3,6 @@
 .vs/
 */obj
 /localscrape/Properties/PublishProfiles
+/localscrape/Chrome/*
+/localscrape/Edge/*
+/localscrape/log*

@@ -112,7 +112,7 @@ namespace localscrape.Manga
             _logger.LogInformation($"Getting chapters for: {mangaSeries.MangaTitle}");
             GoToSeriesPage(mangaSeries);
             var showAllChapters = FindByElements(By.CssSelector("button.hover\\:bg-base-300.p-2"));
-            if (showAllChapters.Count>1)
+            if (showAllChapters.Count>0)
                 showAllChapters.First().Click();
             Thread.Sleep(3000);
 
