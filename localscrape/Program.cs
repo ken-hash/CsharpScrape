@@ -17,19 +17,19 @@ DebugService debug = new(new FileHelper(logger));
 BrowserService edgeBrowser = new(BrowserType.Edge, logger);
 BrowserService chromeBrowser = new(BrowserType.Chrome, logger);
 #if DEBUG
-var isSingle = false;
+var isSingle = true;
 #else
 var isSingle = false;
 #endif
 MangaSeries? mangaSeriesOne = null;
-//isSingle = true;
+isSingle = false;
 if (isSingle)
 {
     mangaSeriesOne = new MangaSeries
     {
-        MangaTitle = "why-i-quit-being-the-demon-king",
+        MangaTitle = "Hunter-X-Hunter",
         MangaChapters = new List<MangaChapter>(),
-        MangaSeriesUri = "https://weebcentral.com/series/01JJCBS4QMEAJA05GBS5NPACXS/why-i-quit-being-the-demon-king"
+        MangaSeriesUri = "https://weebcentral.com/series/01J76XY7EXQV9RE9KQ3JYE0WZ9/Hunter-X-Hunter"
     };
 }
 
