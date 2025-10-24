@@ -19,7 +19,7 @@ namespace localscrape.Manga
 
         private readonly HashSet<string> BlockedFileNames = new(StringComparer.OrdinalIgnoreCase)
         {
-            "close-icon.png", "logo.webp", "google.webp"
+            "close-icon.png", "logo.webp", "google.webp", "EndDesign.webp", "toraka-hero-bg.png", "toraka-logo.png"
         };
 
         public AsuraScansService(

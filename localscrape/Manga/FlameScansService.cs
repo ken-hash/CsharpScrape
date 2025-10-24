@@ -18,7 +18,8 @@ namespace localscrape.Manga
 
         private readonly HashSet<string> BlockedFileNames = new(StringComparer.OrdinalIgnoreCase)
         {
-            "desktop.jpg", "close-icon.png","angry.png","shock.png","happy.png","surprise.png","love.png"
+            "desktop.jpg", "close-icon.png","angry.png","shock.png","happy.png","surprise.png","love.png",
+            "discord.webp", "flame-scans-new-ad.jpg"
         };
 
         public FlameScansService(
@@ -169,7 +170,7 @@ namespace localscrape.Manga
 
                 if (!string.IsNullOrEmpty(chapterName))
                 {
-                    var link = chapterLinks.Count >= 2 ? chapterLinks[x + 2] : chapterLinks[x];
+                    var link = chapterLinks.Count >= 2 && chapterLinks.Count <= x+1 ? chapterLinks[x + 2] : chapterLinks[x];
                     mangaSeries.MangaChapters ??= new List<MangaChapter>();
                     mangaSeries.MangaChapters.Add(new MangaChapter
                     {

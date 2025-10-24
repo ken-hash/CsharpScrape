@@ -69,10 +69,19 @@ namespace localscrape.Manga
             }
         }
 
+        private void ClickMore()
+        {
+            ClickButton("body > main > section.bg-base-100.max-w-7xl.w-full.flex.flex-col.lg\\:grid.grid-cols-3.gap-4.mb-4 > section.bg-base-200.cols-span-1.md\\:col-span-2.rounded-sm > section > button");
+        }
+
         public override List<MangaSeries> GetMangaLinks()
         {
             _logger.LogInformation("Fetching manga links from homepage.");
             var allMangasInDb = GetAllMangaTitles();
+            for(int x=0; x<10; x++)
+            {
+                ClickMore();
+            }
             var mangaTitles = FindByCssSelector(".bg-base-100.hover\\:bg-base-300.flex.items-center.gap-4");
 
             foreach (var titleBox in mangaTitles)

@@ -291,18 +291,36 @@ namespace localscrape.Manga
         /// <param name="mangaImages"></param>
         public async void AddImagesToDownload(List<MangaImages> mangaImages)
         {
-
             string chapter = Directory.GetParent(mangaImages.First().FullPath)!.Name;
             string title = Directory.GetParent(mangaImages.First().FullPath)!.Parent!.Name;
-            var downloadObj = new DownloadObject {
-                Title = title,
-                ChapterNum = chapter,
-                MangaImages = mangaImages
-            };
-            _logger.LogInformation($"Sending {mangaImages.Count} image(s) to download queue for: {title} - Chapter: {chapter}");
 
-            await _rabbitRepo.Send(downloadObj);
+            int batchSize = 30;
+            int totalBatches = (int)Math.Ceiling((double)mangaImages.Count / batchSize);
+
+            for (int i = 0; i < totalBatches; i++)
+            {
+                var batch = mangaImages
+                    .Skip(i * batchSize)
+                    .Take(batchSize)
+                    .ToList();
+
+                var downloadObj = new DownloadObject
+                {
+                    Title = title,
+                    ChapterNum = chapter,
+                    MangaImages = batch,
+                    IsFinalBatch = (i == totalBatches - 1)
+                };
+
+                _logger.LogInformation(
+                    $"Sending {batch.Count} image(s) (batch {i + 1}/{totalBatches}) " +
+                    $"to download queue for: {title} - Chapter: {chapter}"
+                );
+
+                await _rabbitRepo.Send(downloadObj);
+            }
         }
+
 
         /// <summary>
         /// Insert a new manga into the database
@@ -375,6 +393,12 @@ namespace localscrape.Manga
                 mangaImages.Add(new MangaImages { ImageFileName = fileName, FullPath = fullFilePath, Base64String = string64 , Uri = domain});
             }
             return mangaImages;
+        }
+
+        public void ClickButton(string CssSelector)
+        {
+            _browser.ClickCSSSelector(CssSelector);
+            Thread.Sleep(1000);
         }
     }
 }

@@ -5,6 +5,7 @@ namespace localscrape.Models
         public required string Title { get; set; }
         public required string ChapterNum { get; set; }
         public required List<MangaImages> MangaImages { get; set; }
+        public bool IsFinalBatch { get; set; } = true;
 
         public override string ToString()
         {
